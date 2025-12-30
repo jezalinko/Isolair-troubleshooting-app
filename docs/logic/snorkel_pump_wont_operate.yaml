@@ -33,7 +33,7 @@ nodes:
       "yes": q_context_in_field
       "no": q_pressure_switch_voltage
 
-    # --- FIELD vs WORKSHOP PATH GATE ---
+  # --- FIELD vs WORKSHOP PATH GATE ---
   # Added as SOP now includes spare pump assembly carried in aircraft (field swap-first policy)
   q_context_in_field:
     type: question
