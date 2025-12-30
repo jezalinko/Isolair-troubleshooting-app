@@ -1,0 +1,13 @@
+
+# Local source PDFs (do not commit)
+docs/source_pdfs/
+
+# Python venv
+.venv/
+
+# PDFs - never commit
+*.pdf
+
+# Local source PDFs (do not commit)
+docs/source_pdfs/
+docs/source_pdfs/**
