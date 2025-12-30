@@ -34,11 +34,11 @@ nodes:
       "no": q_pressure_switch_voltage
 
     # --- FIELD vs WORKSHOP PATH GATE ---
-    # Added as current SOP is out of date and does not reflect field spare pump policy
+  # Added as SOP now includes spare pump assembly carried in aircraft (field swap-first policy)
   q_context_in_field:
     type: question
     title: "Context — Field or Workshop?"
-    prompt: "Are you operating in-field (fireground) with a complete spare snorkel pump assembly available in the aircraft?"
+    prompt: "Are you operating in-field (fireground) with a complete spare snorkel pump + power cable assembly available in the aircraft?"
     help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.2_motor_check.md"
     answers:
       "yes": q_field_swap_spare_pump
@@ -46,36 +46,43 @@ nodes:
 
   q_field_swap_spare_pump:
     type: question
-    title: "Field Action — Swap to Spare Pump"
-    prompt: "Unplug current pump at the Anderson plug. Plug in the spare snorkel pump assembly. Does the snorkel pump operate when triggered?"
+    title: "Field Action — Swap to Spare Pump Assembly"
+    prompt: "Unplug current pump at the Anderson plug. Plug in the spare pump + cable assembly. Does the snorkel pump operate when triggered?"
     help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.2_motor_check.md"
     answers:
       "yes": r_field_original_pump_fault
-      "no": r_field_not_pump_go_workshop_path
+      "no": r_field_spare_pump_failed
 
   r_field_original_pump_fault:
     type: result
     title: "Field Result — Original Pump Assembly Fault"
     outcome: |
-      Spare pump works → the original snorkel pump assembly (pump and/or its cable/connector) is faulty.
+      Spare pump works → original pump assembly (pump and/or cable/connector) is faulty.
       Field action:
-        - Replace the current pump with the spare to remain serviceable.
-        - Tag the faulty pump/cable for tank technician or avionics to investigate in the workshop.
+        - Keep spare installed to remain serviceable.
+        - Tag faulty pump/cable for tank technician or avionics workshop investigation.
       Workshop follow-up:
-        - Perform Section 1.2 (power/ground + continuity) to isolate whether the issue is the motor/ECC or the cable/connector.
+        - Use Section 1.2 tests to isolate motor/ECC vs cable/connector.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
 
-  r_field_not_pump_go_workshop_path:
+  r_field_spare_pump_failed:
     type: result
-    title: "Field Result — Spare Pump Does Not Work"
+    title: "Field Result — Spare Pump Assembly Does Not Work"
     outcome: |
       Spare pump does not work → likely not a pump assembly issue.
       Field action:
-        - Continue with workshop-style checks when safe/able (pressure switch / relay / cyclic controller / wiring).
-      Next recommended workshop starting point:
-        - Section 1.3 Pressure Switch Check, then Section 1.4 Relay Check.
-    # Next logical in field step would be 1.5 Cyclic Controller Check.
-    # Add button/link for eaach result "1.3 Pressure Switch Check" "1.4 Relay Check" or "1.5 Cyclic Controller Check"
-    # to jump to that section directly below "Next recommended workshop starting point" text.
+        - Continue with fast swap checks (Cyclic Controller) OR proceed to workshop electrical checks if tools/time allow.
+    next:
+      - label: "Go to 1.5 Cyclic Controller Check (fast swap)"
+        node: q_cc_replaced_and_retest
+      - label: "Go to 1.3 Pressure Switch Check"
+        node: q_pressure_switch_voltage
+      - label: "Go to 1.4 Relay Check"
+        node: q_relay_output
+      - label: "Start Over"
+        node: q_pressure_in_range
 
 
   # --- 1.2 MOTOR CHECK ---
@@ -208,6 +215,10 @@ nodes:
       Power and cable continuity are OK. Motor assembly is likely faulty, most commonly the End Cap Controller (ECC).
       Continue using spare pump and replace ECC ASAP.
       ECC programming must be done by an authorised technician.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_power_cable_or_connector_fault:
     type: result
@@ -215,6 +226,10 @@ nodes:
     outcome: |
       No continuity found through the pump power cable.
       Investigate/repair cable, Anderson plug contacts, and connector integrity.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_replace_pressure_switch:
     type: result
@@ -222,6 +237,10 @@ nodes:
     outcome: |
       No voltage at High Pressure (N/O) terminal when expected.
       Replace pressure switch and ensure sealing against water ingress (DC4 silicone grease), then re-test.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_delivery_ok_upstream_check_pump_or_load:
     type: result
@@ -230,6 +249,10 @@ nodes:
       Power is present at the Anderson plug with contacts locked.
       Upstream control path appears serviceable.
       Next: verify pump/load connection, pump condition, and associated wiring at the pump end.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_ground_missing_at_anderson:
     type: result
@@ -237,6 +260,10 @@ nodes:
     outcome: |
       Power feed continuity is OK. Ensure the other Anderson plug terminal has a suitable ground.
       If ground is missing, investigate ground path and connections.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_faulty_wire_relay_to_anderson:
     type: result
@@ -244,6 +271,10 @@ nodes:
     outcome: |
       No continuity between relay output and Anderson plug power pin.
       Inspect and repair wiring between the relay and the Anderson plug.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_control_power_feed_fault_or_return_to_pressure_switch:
     type: result
@@ -252,6 +283,10 @@ nodes:
       No control power at relay terminal with system ON and pressure normal.
       If pressure switch was confirmed serviceable, check wiring between pressure switch and relay control terminal.
       Otherwise return to Pressure Switch Check.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_relay_fault_replace_pn24214:
     type: result
@@ -259,6 +294,10 @@ nodes:
     outcome: |
       Control power and control ground are present but relay output does not switch.
       Replace relay and re-test. Use the specified relay part number (P/N 24214, 200 A).
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_partial_switch_function_service_note:
     type: result
@@ -267,6 +306,10 @@ nodes:
       One direction works and the other may not.
       Field action: replace Cyclic Controller as per policy when practical.
       Workshop action: repair/replace Pump Switch to restore a spare serviceable controller.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_cc_faulty_keep_spare_installed:
     type: result
@@ -275,6 +318,10 @@ nodes:
       After replacing the Cyclic Controller, snorkel pump operates.
       Keep spare installed to remain serviceable.
       Workshop: repair/replace Pump Switch to restore the spare controller.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_cc_internal_fault_workshop_repair:
     type: result
@@ -282,6 +329,10 @@ nodes:
     outcome: |
       No continuity on DB9 pins 6–8 when Pump Switch is triggered.
       Workshop: inspect internal wiring and replace Pump Switch as required.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_display_box_or_aircraft_wiring_fault:
     type: result
@@ -289,6 +340,10 @@ nodes:
     outcome: |
       No ground at slot M when Pump Switch is triggered.
       Check wiring diagrams and/or replace Isolair Display Box (spares at base) as per procedure.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_tank_wiring_or_pin_fault:
     type: result
@@ -296,6 +351,10 @@ nodes:
     outcome: |
       No continuity between pin M and relay control ground.
       Inspect tank-side wiring, connector pins, and repair as required.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   r_recheck_relay_section:
     type: result
@@ -303,3 +362,7 @@ nodes:
     outcome: |
       Continuity from pin M to relay control ground is OK.
       Re-check relay testing steps in Section 1.4 and verify correct relay identification.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
