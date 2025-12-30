@@ -82,12 +82,12 @@ Does the Snorkel Pump operate in either direction (one direction only)?
 
 ### Step 6
 **Action:** Snorkel Pump Check  
-**Question:** Change the Snorkel Pump and try again. Does the new Snorkel Pump work?
+**Question:** Change the Snorkel Pump with spare and try again. Does the new Snorkel Pump work?
 
 - **YES →**
   - Faulty Snorkel Pump  
   - Continue to use the new pump  
-  - Troubleshoot faulty pump ASAP  
+  - Tank Technician or Avionics to troubleshoot faulty pump at base 
   - Begin at **Para. 1.2.2 — Snorkel Pump Motor Check**
 
 - **NO →**
