@@ -38,6 +38,20 @@ def prompt_yes_no(prompt: str) -> str:
         print("Please enter y or n.")
 
 
+def choose_mode() -> str:
+    # CHANGE: New helper to select Field vs Workshop at start
+    while True:
+        print("Select context:")
+        print("  1) Field (fireground)")
+        print("  2) Workshop (base/maintenance)")
+        raw = input("Choose 1 or 2: ").strip()
+        if raw == "1":
+            return "field"
+        if raw == "2":
+            return "workshop"
+        print("Please enter 1 or 2.\n")
+
+
 def _format_test_methods(value: Any) -> str | None:
     """
     Accepts:
@@ -46,7 +60,6 @@ def _format_test_methods(value: Any) -> str | None:
     Returns a pretty formatted block (string) or None.
     """
     if isinstance(value, str) and value.strip():
-        # If it's already bullet-y, keep it. Otherwise, indent it nicely.
         lines = [ln.rstrip() for ln in value.strip().splitlines()]
         return "\n".join(lines)
 
@@ -62,7 +75,7 @@ def _format_test_methods(value: Any) -> str | None:
 
 def extract_test_method_from_md(md_path: Path) -> str | None:
     """
-    Attempts to extract a "Test Method(s)" section from markdown, like:
+    Attempts to extract a "Test Method(s)" section from markdown.
 
     ### Test Method
     ...content...
@@ -74,12 +87,10 @@ def extract_test_method_from_md(md_path: Path) -> str | None:
 
     text = md_path.read_text(encoding="utf-8", errors="replace")
 
-    # Match headings like "### Test Method" or "### Test Methods"
-    # Capture content until next heading (## or ### or # etc).
     pattern = re.compile(
-        r"(?im)^\s{0,3}#{2,6}\s+Test Method(?:s)?\s*$\n"  # heading line
-        r"(.*?)"                                        # content
-        r"(?=^\s{0,3}#{1,6}\s+|\Z)",                     # next heading or EOF
+        r"(?im)^\s{0,3}#{2,6}\s+Test Method(?:s)?\s*$\n"
+        r"(.*?)"
+        r"(?=^\s{0,3}#{1,6}\s+|\Z)",
         re.DOTALL,
     )
 
@@ -91,7 +102,6 @@ def extract_test_method_from_md(md_path: Path) -> str | None:
     if not body:
         return None
 
-    # Clean up excessive blank lines
     body = re.sub(r"\n{3,}", "\n\n", body).strip()
     return body
 
@@ -113,14 +123,14 @@ def print_policy(spec: dict) -> None:
 
     print("")
 
-# Helper to extract visual references (Pics/Diagrams) from markdown
 
 def extract_visual_refs_from_md(md_path: Path) -> str | None:
+    # CHANGE: no logic change, but will be called safely (only if help_doc exists)
     if not md_path.exists():
         return None
     text = md_path.read_text(encoding="utf-8", errors="replace")
 
-    pics = sorted(set(re.findall(r"\bPic\s*\d+\b", text, flags=re.IGNORECASE)))
+    pics = sorted(set(re.findall(r"\bPic\s*\d+(?:\.\d+)?\b", text, flags=re.IGNORECASE)))
     diags = sorted(set(re.findall(r"\bDiagram\s*\d+(?:\.\d+)?\b", text, flags=re.IGNORECASE)))
 
     if not pics and not diags:
@@ -133,6 +143,23 @@ def extract_visual_refs_from_md(md_path: Path) -> str | None:
         parts.append("Diagrams: " + ", ".join(diags))
     return " | ".join(parts)
 
+
+def get_prompt_for_mode(node: dict, mode: str) -> str:
+    # CHANGE: supports new YAML keys field_prompt/workshop_prompt
+    if mode == "field":
+        return node.get("field_prompt") or node.get("prompt") or "Answer?"
+    return node.get("workshop_prompt") or node.get("prompt") or "Answer?"
+
+
+def should_show_hf_details(node: dict, mode: str) -> bool:
+    """
+    CHANGE: Human factors gating.
+    - Workshop: show details by default
+    - Field: hide by default unless node explicitly opts in
+    """
+    if mode == "workshop":
+        return True
+    return bool(node.get("show_in_field", False))
 
 
 # -------------------------------
@@ -149,18 +176,14 @@ def run_flow(spec: dict) -> None:
 
     print_policy(spec)
 
-    visited = set()
+    # CHANGE: choose global context once at start
+    mode = choose_mode()
+    print(f"\nContext set to: {mode.upper()}\n")
 
     while True:
         if node_id not in nodes:
             print(f"\nERROR: Node '{node_id}' not found in YAML.")
             return
-
-        # NOTE: you *want* to allow intentional loops (Start Over).
-        # So only block immediate infinite recursion due to bad wiring:
-        # Allow revisits, but warn if it gets crazy (optional).
-        # For now: do NOT hard-fail on revisits.
-        visited.add(node_id)
 
         node = nodes[node_id]
         ntype = node.get("type")
@@ -172,38 +195,45 @@ def run_flow(spec: dict) -> None:
         if help_doc:
             print(f"Reference: {help_doc}")
 
-        #✅ Visual references extraction for future proofing GUI will work with CLI too
-
-        vr = extract_visual_refs_from_md(Path(help_doc))
-        if vr:
-            print(f"Visual refs: {vr}")
-
-
-        # ✅ Show test methods (YAML first, fallback to markdown extraction)
-        test_block = None
-
-        if "test_method" in node:
-            test_block = _format_test_methods(node.get("test_method"))
-        elif "test_methods" in node:
-            test_block = _format_test_methods(node.get("test_methods"))
-
-        if not test_block and help_doc:
+        # CHANGE: only show test methods / visuals when appropriate
+        if help_doc and should_show_hf_details(node, mode):
             md_path = Path(help_doc)
-            extracted = extract_test_method_from_md(md_path)
-            if extracted:
-                test_block = extracted
 
-        if test_block:
-            print("\nTest Method:")
-            # If it already contains bullet lines, print as-is; otherwise indent slightly.
-            print(test_block)
+            vr = None
+            # If YAML provides visual_refs, prefer those; else parse the markdown
+            yaml_vr = node.get("visual_refs")
+            if isinstance(yaml_vr, list) and yaml_vr:
+                vr = " | ".join(str(x) for x in yaml_vr if str(x).strip())
+            else:
+                vr = extract_visual_refs_from_md(md_path)
+
+            if vr:
+                print(f"Visual refs: {vr}")
+
+        if should_show_hf_details(node, mode):
+            test_block = None
+
+            # YAML first, fallback to markdown extraction
+            if "test_method" in node:
+                test_block = _format_test_methods(node.get("test_method"))
+            elif "test_methods" in node:
+                test_block = _format_test_methods(node.get("test_methods"))
+
+            if not test_block and help_doc:
+                extracted = extract_test_method_from_md(Path(help_doc))
+                if extracted:
+                    test_block = extracted
+
+            if test_block:
+                print("\nTest Method:")
+                print(test_block)
 
         # -------------------------------
         # Question node
         # -------------------------------
-
         if ntype == "question":
-            ans = prompt_yes_no(node.get("prompt", "Answer?"))
+            prompt = get_prompt_for_mode(node, mode)  # CHANGE
+            ans = prompt_yes_no(prompt)
             next_id = node.get("answers", {}).get(ans)
             if not next_id:
                 print(f"ERROR: No transition for answer '{ans}' from node '{node_id}'.")
@@ -214,12 +244,10 @@ def run_flow(spec: dict) -> None:
         # -------------------------------
         # Result node
         # -------------------------------
-
         if ntype == "result":
             print("\nRESULT:")
             print(node.get("outcome", node.get("text", "(no outcome text provided)")))
 
-            # Optional menu-style "next" support (your YAML already uses this)
             next_opts = node.get("next")
             if isinstance(next_opts, list) and next_opts:
                 print("\nWhat would you like to do?")
@@ -245,7 +273,8 @@ def run_flow(spec: dict) -> None:
 
         print(f"ERROR: Unknown node type '{ntype}' in node '{node_id}'.")
         return
-    
+
+
 # -------------------------------
 # Entrypoint
 # -------------------------------

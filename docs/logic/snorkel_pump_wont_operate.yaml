@@ -1,368 +1,159 @@
-version: 1
+version: 2
 id: snorkel_pump_wont_operate
 title: "Snorkel Pump Won’t Operate"
 entry: q_pressure_in_range
 
-# Global policy reminders for this logic bundle
 policy:
   supported_aircraft: ["214"]
   deprecated_components: ["slave relay"]
   field_procedure:
     cyclic_controller: "Replace full Cyclic Controller in-field; switch repair workshop only"
-  
-# Would be ideal to have ### Test Methods from each section below the prompt: tag in each question node.
-# Especially for the more complex tests that require specific setups or tools.
 
 nodes:
-  # --- 1.1 QUICK CHECK ---
+
+  # ---------------- 1.1 QUICK CHECK ----------------
   q_pressure_in_range:
     type: question
     title: "1.1 Quick Check — Hydraulic Pressure"
-    prompt: "Is hydraulic pressure within normal operating range (850–1150 psi)?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.1_quick_check.md"
+    field_prompt: "Is hydraulic pressure in the normal green band (850–1150 psi)?"
+    workshop_prompt: "Is hydraulic pressure within normal operating range (850–1150 psi)?"
+    show_in_field: true
+    visual_refs:
+      - "Pressure Gauge (green band)"
     answers:
       "yes": q_door_close_led
       "no": q_pressure_switch_voltage
 
   q_door_close_led:
     type: question
-    title: "1.1 Quick Check — DOOR CLOSE LED"
-    prompt: "Is the green DOOR CLOSE LED illuminated on the Isolair Display Box?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.1_quick_check.md"
+    title: "1.1 Quick Check — Door Close LED"
+    field_prompt: "Is the green DOOR CLOSE LED illuminated?"
+    workshop_prompt: "Is the green DOOR CLOSE LED illuminated on the Isolair Display Box?"
+    show_in_field: true
+    visual_refs:
+      - "Isolair Display Box — Green LED"
     answers:
       "yes": q_context_in_field
       "no": q_pressure_switch_voltage
 
-  # --- FIELD vs WORKSHOP PATH GATE ---
-  # Added as SOP now includes spare pump assembly carried in aircraft (field swap-first policy)
+
+  # ---------------- MODE GATE ----------------
   q_context_in_field:
     type: question
     title: "Context — Field or Workshop?"
-    prompt: "Are you operating in-field (fireground) with a complete spare snorkel pump + power cable assembly available in the aircraft?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.2_motor_check.md"
+    field_prompt: "Are you operating in the field with a spare snorkel pump + cable onboard?"
+    workshop_prompt: "Is this troubleshooting being done in a workshop environment?"
     answers:
-      "yes": q_field_swap_spare_pump
-      "no": q_motor_power_ground
+      "yes": q_motor_power_ground
+      "no": q_field_swap_spare_pump
 
+
+  # ---------------- FIELD PATH ----------------
   q_field_swap_spare_pump:
     type: question
-    title: "Field Action — Swap to Spare Pump Assembly"
-    prompt: "Unplug current pump at the Anderson plug. Plug in the spare pump + cable assembly. Does the snorkel pump operate when triggered?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.2_motor_check.md"
+    title: "Field Action — Swap Pump Assembly"
+    field_prompt: "Plug in the spare pump assembly. Does the pump now operate?"
+    workshop_prompt: "Swap the pump assembly using the Anderson plug. Does the spare pump run?"
+    show_in_field: true
     answers:
       "yes": r_field_original_pump_fault
       "no": r_field_spare_pump_failed
 
   r_field_original_pump_fault:
     type: result
-    title: "Field Result — Original Pump Assembly Fault"
+    title: "Field Result — Original Pump Fault"
     outcome: |
-      Spare pump works → original pump assembly (pump and/or cable/connector) is faulty.
-      Field action:
-        - Keep spare installed to remain serviceable.
-        - Tag faulty pump/cable for tank technician or avionics workshop investigation.
-      Workshop follow-up:
-        - Use Section 1.2 tests to isolate motor/ECC vs cable/connector.
+      Spare pump works — original pump or cable is faulty.
+      Keep spare installed and tag the faulty unit for workshop repair.
     next:
       - label: "Start Over"
         node: q_pressure_in_range
 
   r_field_spare_pump_failed:
     type: result
-    title: "Field Result — Spare Pump Assembly Does Not Work"
+    title: "Field Result — Not a Pump Fault"
     outcome: |
-      Spare pump does not work → likely not a pump assembly issue.
-      Field action:
-        - Continue with fast swap checks (Cyclic Controller) OR proceed to workshop electrical checks if tools/time allow.
+      Spare pump does not work — fault is upstream.
+      Continue with Cyclic Controller or workshop electrical checks.
     next:
-      - label: "Go to 1.5 Cyclic Controller Check (fast swap)"
+      - label: "Go to 1.5 Cyclic Controller"
         node: q_cc_replaced_and_retest
-      - label: "Go to 1.3 Pressure Switch Check"
+      - label: "Go to 1.3 Pressure Switch"
         node: q_pressure_switch_voltage
-      - label: "Go to 1.4 Relay Check"
+      - label: "Go to 1.4 Relay"
         node: q_relay_output
       - label: "Start Over"
         node: q_pressure_in_range
 
 
-  # --- 1.2 MOTOR CHECK ---
+  # ---------------- WORKSHOP PATH ----------------
   q_motor_power_ground:
     type: question
-    title: "1.2 Motor Check — Power/Ground at Pump Connector"
-    prompt: "When Pump Switch is triggered, is there power and ground at the snorkel pump power receptacle (tank side)?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.2_motor_check.md"
+    title: "1.2 Motor — Power & Ground"
+    field_prompt: "Workshop test: power/ground at receptacle (use workshop procedure)."
+    workshop_prompt: "Is there power and ground at the tank pump receptacle when the switch is pressed?"
+    test_method: |
+      Disconnect Anderson plug.
+      While another person presses Pump Switch:
+      - Check for power at tank receptacle
+      - Confirm ground on other terminal
+    visual_refs:
+      - Pic 2
+      - Pic 2.1
+      - Pic 2.2
+      - Pic 3
     answers:
       "yes": q_cable_continuity
       "no": q_pressure_switch_voltage
 
   q_cable_continuity:
     type: question
-    title: "1.2 Motor Check — Cable Continuity"
-    prompt: "Is there continuity through BOTH power and ground wires in the pump power cable?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.2_motor_check.md"
+    title: "1.2 Cable Continuity"
+    workshop_prompt: "Is there continuity in both power and ground wires of the pump cable?"
+    test_method: |
+      Disconnect motor Milspec and Anderson plug.
+      Check continuity end-to-end on both conductors.
     answers:
       "yes": r_ecc_likely_fault
       "no": r_power_cable_or_connector_fault
 
-  # --- 1.3 PRESSURE SWITCH CHECK ---
+
+  # ---------------- 1.3 PRESSURE SWITCH ----------------
   q_pressure_switch_voltage:
     type: question
-    title: "1.3 Pressure Switch — High Pressure Terminal Voltage"
-    prompt: "With system ON and fault present, is there 24–28V at the Pressure Switch High Pressure (N/O) terminal (Stauff Terminal 4)?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.3_pressure_switch.md"
+    title: "1.3 Pressure Switch"
+    workshop_prompt: "Is 24–28 V present at the High Pressure (N/O) terminal?"
+    test_method: |
+      System ON, pressure normal.
+      Measure voltage at Stauff Terminal 4.
+    visual_refs:
+      - Pic 4
+      - Pic 5
+      - Diagram 6.9
     answers:
       "yes": q_relay_output
       "no": r_replace_pressure_switch
 
-  # --- 1.4 POWER RELAY CHECK ---
+
+  # ---------------- 1.4 RELAY ----------------
   q_relay_output:
     type: question
-    title: "1.4 Relay — Output Terminal Voltage"
-    prompt: "Only when Pump Switch is triggered: is there 24–28V at the LARGE output terminal of the Snorkel Pump Power Relay?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.4_relay.md"
+    title: "1.4 Relay Output"
+    workshop_prompt: "Is 24–28 V present on the relay output when the switch is pressed?"
+    visual_refs:
+      - Pic 7
     answers:
       "yes": q_power_at_anderson
       "no": q_relay_control_power
 
-  q_power_at_anderson:
-    type: question
-    title: "1.4 Relay — Power at Anderson Plug"
-    prompt: "When Pump Switch is triggered: is power present at the snorkel pump Anderson plug AND are the contacts locked in correctly?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.4_relay.md"
-    answers:
-      "yes": r_delivery_ok_upstream_check_pump_or_load
-      "no": q_continuity_relay_to_anderson
 
-  q_continuity_relay_to_anderson:
-    type: question
-    title: "1.4 Relay — Continuity Relay→Anderson"
-    prompt: "Is there continuity between the relay LARGE output terminal and the power pin at the Anderson plug?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.4_relay.md"
-    answers:
-      "yes": r_ground_missing_at_anderson
-      "no": r_faulty_wire_relay_to_anderson
-
-  q_relay_control_power:
-    type: question
-    title: "1.4 Relay — Control Power Present"
-    prompt: "With system ON and pressure normal: is 24–28V present at one SMALL control terminal on the Snorkel Pump Power Relay? (remove one control wire to avoid false readings)"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.4_relay.md"
-    answers:
-      "yes": q_relay_control_ground
-      "no": r_control_power_feed_fault_or_return_to_pressure_switch
-
-  q_relay_control_ground:
-    type: question
-    title: "1.4 Relay — Control Ground When Triggered"
-    prompt: "Only when Pump Switch is triggered: is there ground at the other SMALL control terminal? (keep one control wire disconnected while testing)"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.4_relay.md"
-    answers:
-      "yes": r_relay_fault_replace_pn24214
-      "no": q_cc_pump_switch_quick
-
-  # --- 1.5 CYCLIC CONTROLLER / PUMP SWITCH CHECK (renumbered from OEM 1.6) ---
-  q_cc_pump_switch_quick:
-    type: question
-    title: "1.5 Cyclic Controller — Pump Switch Quick Check"
-    prompt: "Does the snorkel pump operate when Pump Switch is triggered in either direction?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.5_cyclic_pump_switch.md"
-    answers:
-      "yes": r_partial_switch_function_service_note
-      "no": q_cc_replaced_and_retest
-
+  # ---------------- 1.5 CYCLIC CONTROLLER ----------------
   q_cc_replaced_and_retest:
     type: question
-    title: "1.5 Cyclic Controller — Replace Unit (Field Policy)"
-    prompt: "Replace Cyclic Controller with spare and re-test. Does snorkel pump now operate?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.5_cyclic_pump_switch.md"
+    title: "1.5 Replace Cyclic Controller"
+    field_prompt: "Replace cyclic controller with spare. Does pump now work?"
+    workshop_prompt: "Replace controller and re-test pump."
+    show_in_field: true
     answers:
       "yes": r_cc_faulty_keep_spare_installed
       "no": q_db9_continuity_6_8
-
-  q_db9_continuity_6_8:
-    type: question
-    title: "1.5 Cyclic Controller — DB9 Continuity"
-    prompt: "Only when Pump Switch is triggered: is there continuity between pins 6 and 8 on the DB9 connector?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.5_cyclic_pump_switch.md"
-    answers:
-      "yes": q_slot_m_ground
-      "no": r_cc_internal_fault_workshop_repair
-
-  q_slot_m_ground:
-    type: question
-    title: "1.5 Cyclic Controller — Slot M Ground"
-    prompt: "With system ON: is there ground at slot M on the 24-pin data plug receptacle when Pump Switch is triggered?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.5_cyclic_pump_switch.md"
-    answers:
-      "yes": q_continuity_m_to_relay_ground
-      "no": r_display_box_or_aircraft_wiring_fault
-
-  q_continuity_m_to_relay_ground:
-    type: question
-    title: "1.5 Tank Wiring — Continuity M→Relay Control Ground"
-    prompt: "Is there continuity between pin M and the relay control ground terminal on the Snorkel Pump Power Relay?"
-    help_doc: "docs/extracted_md/02_thorough_checks/snorkel_pump_wont_operate/1.5_cyclic_pump_switch.md"
-    answers:
-      "yes": r_recheck_relay_section
-      "no": r_tank_wiring_or_pin_fault
-
-  # --- RESULTS ---
-  # At the end of each result path there needs to be an option to "Start Over" or "Return to Main Menu"
-  r_ecc_likely_fault:
-    type: result
-    title: "Likely Fault — End Cap Controller (ECC)"
-    outcome: |
-      Power and cable continuity are OK. Motor assembly is likely faulty, most commonly the End Cap Controller (ECC).
-      Continue using spare pump and replace ECC ASAP.
-      ECC programming must be done by an authorised technician.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_power_cable_or_connector_fault:
-    type: result
-    title: "Likely Fault — Power Cable / Connector"
-    outcome: |
-      No continuity found through the pump power cable.
-      Investigate/repair cable, Anderson plug contacts, and connector integrity.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_replace_pressure_switch:
-    type: result
-    title: "Likely Fault — Pressure Switch"
-    outcome: |
-      No voltage at High Pressure (N/O) terminal when expected.
-      Replace pressure switch and ensure sealing against water ingress (DC4 silicone grease), then re-test.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_delivery_ok_upstream_check_pump_or_load:
-    type: result
-    title: "Power Delivery OK at Anderson Plug"
-    outcome: |
-      Power is present at the Anderson plug with contacts locked.
-      Upstream control path appears serviceable.
-      Next: verify pump/load connection, pump condition, and associated wiring at the pump end.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_ground_missing_at_anderson:
-    type: result
-    title: "Likely Fault — Missing Ground at Anderson Plug"
-    outcome: |
-      Power feed continuity is OK. Ensure the other Anderson plug terminal has a suitable ground.
-      If ground is missing, investigate ground path and connections.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_faulty_wire_relay_to_anderson:
-    type: result
-    title: "Likely Fault — Relay→Anderson Power Wire"
-    outcome: |
-      No continuity between relay output and Anderson plug power pin.
-      Inspect and repair wiring between the relay and the Anderson plug.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_control_power_feed_fault_or_return_to_pressure_switch:
-    type: result
-    title: "Likely Fault — Control Power Feed"
-    outcome: |
-      No control power at relay terminal with system ON and pressure normal.
-      If pressure switch was confirmed serviceable, check wiring between pressure switch and relay control terminal.
-      Otherwise return to Pressure Switch Check.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_relay_fault_replace_pn24214:
-    type: result
-    title: "Likely Fault — Snorkel Pump Power Relay"
-    outcome: |
-      Control power and control ground are present but relay output does not switch.
-      Replace relay and re-test. Use the specified relay part number (P/N 24214, 200 A).
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_partial_switch_function_service_note:
-    type: result
-    title: "Pump Switch Partially Functional"
-    outcome: |
-      One direction works and the other may not.
-      Field action: replace Cyclic Controller as per policy when practical.
-      Workshop action: repair/replace Pump Switch to restore a spare serviceable controller.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_cc_faulty_keep_spare_installed:
-    type: result
-    title: "Likely Fault — Cyclic Controller"
-    outcome: |
-      After replacing the Cyclic Controller, snorkel pump operates.
-      Keep spare installed to remain serviceable.
-      Workshop: repair/replace Pump Switch to restore the spare controller.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_cc_internal_fault_workshop_repair:
-    type: result
-    title: "Likely Fault — Cyclic Controller Internal Wiring/Switch"
-    outcome: |
-      No continuity on DB9 pins 6–8 when Pump Switch is triggered.
-      Workshop: inspect internal wiring and replace Pump Switch as required.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_display_box_or_aircraft_wiring_fault:
-    type: result
-    title: "Likely Fault — Display Box / Aircraft Wiring to Data Plug"
-    outcome: |
-      No ground at slot M when Pump Switch is triggered.
-      Check wiring diagrams and/or replace Isolair Display Box (spares at base) as per procedure.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_tank_wiring_or_pin_fault:
-    type: result
-    title: "Likely Fault — Tank Wiring / Damaged Pin"
-    outcome: |
-      No continuity between pin M and relay control ground.
-      Inspect tank-side wiring, connector pins, and repair as required.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
-
-  r_recheck_relay_section:
-    type: result
-    title: "Tank Wiring OK — Re-check Relay Section"
-    outcome: |
-      Continuity from pin M to relay control ground is OK.
-      Re-check relay testing steps in Section 1.4 and verify correct relay identification.
-    next:
-      - label: "Start Over"
-        node: q_pressure_in_range
-
