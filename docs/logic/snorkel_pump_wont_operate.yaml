@@ -22,7 +22,7 @@ nodes:
       - "Pressure Gauge (green band)"
     answers:
       "yes": q_door_close_led
-      "no": q_pressure_switch_voltage
+      "no": q_pressure_switch_gate   # CHANGED (was q_pressure_switch_voltage)
 
   q_door_close_led:
     type: question
@@ -34,7 +34,7 @@ nodes:
       - "Isolair Display Box — Green LED"
     answers:
       "yes": q_context_in_field
-      "no": q_pressure_switch_voltage
+      "no": q_pressure_switch_gate   # CHANGED (was q_pressure_switch_voltage)
 
 
   # ---------------- MODE GATE ----------------
@@ -47,8 +47,8 @@ nodes:
       "yes": q_field_swap_spare_pump
       "no": q_motor_power_ground
 
-
-  # ---------------- FIELD PATH ----------------
+  
+  # ----------------1.2 MOTOR CHECK FIELD PATH ----------------
   q_field_swap_spare_pump:
     type: question
     title: "Field Action — Swap Pump Assembly"
@@ -79,14 +79,14 @@ nodes:
       - label: "Go to 1.5 Cyclic Controller"
         node: q_cc_replaced_and_retest
       - label: "Go to 1.3 Pressure Switch"
-        node: q_pressure_switch_voltage
+        node: q_pressure_switch_gate      # CHANGED (was q_pressure_switch_voltage)
       - label: "Go to 1.4 Relay"
-        node: q_relay_output
+        node: q_relay_field_gate          # CHANGED (was q_relay_output)
       - label: "Start Over"
         node: q_pressure_in_range
 
 
-  # ---------------- WORKSHOP PATH ----------------
+  # ---------------- 1.2 MOTOR CHECK WORKSHOP PATH ----------------
   q_motor_power_ground:
     type: question
     title: "1.2 Motor — Power & Ground"
@@ -104,7 +104,7 @@ nodes:
       - Pic 3
     answers:
       "yes": q_cable_continuity
-      "no": q_pressure_switch_voltage
+      "no": q_pressure_switch_gate   # CHANGED (was q_pressure_switch_voltage)
 
   q_cable_continuity:
     type: question
@@ -117,15 +117,73 @@ nodes:
       "yes": r_ecc_likely_fault
       "no": r_power_cable_or_connector_fault
 
+  r_ecc_likely_fault:
+    type: result
+    title: "Workshop Result — Likely End Cap Controller (ECC) Fault"
+    outcome: |
+      Power and cable continuity are OK. Motor assembly is likely faulty, most commonly the End Cap Controller (ECC).
 
-  # ---------------- 1.3 PRESSURE SWITCH ----------------
+      Action:
+      - Continue using the spare pump (if available) and replace ECC ASAP.
+      - ECC programming must be done by an authorised technician.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  r_power_cable_or_connector_fault:
+    type: result
+    title: "Workshop Result — Power Cable / Connector Fault"
+    outcome: |
+      No continuity found through the pump power cable.
+
+      Action:
+      - Inspect/repair cable and connectors.
+      - Check Anderson plug contacts are correctly locked and not damaged.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+   # ---------------- 1.3 PRESSURE SWITCH ----------------
+  # Field users should NOT diagnose pressure switch in-field.
+  # We route Field -> a stop/result node, Workshop -> diagnostic question.
+
+  q_pressure_switch_gate:
+    type: question
+    title: "1.3 Pressure Switch — Workshop Only"
+    field_prompt: "Workshop-only check. Are you at base/maintenance with tools available?"
+    workshop_prompt: "Proceed to Pressure Switch diagnostic check?"
+    show_in_field: true
+    answers:
+      "yes": q_pressure_switch_voltage
+      "no": r_field_return_to_base_pressure_switch
+
+  r_field_return_to_base_pressure_switch:
+    type: result
+    title: "Field Result — Do Not Diagnose Pressure Switch In-Field"
+    outcome: |
+      Pressure Switch troubleshooting is workshop-only.
+
+      Field action:
+      - Do NOT attempt to diagnose the pressure switch in-field.
+      - Contact workshop / return to base when safe.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
   q_pressure_switch_voltage:
     type: question
-    title: "1.3 Pressure Switch"
-    workshop_prompt: "Is 24–28 V present at the High Pressure (N/O) terminal?"
+    title: "1.3 Pressure Switch — High Pressure (N/O) Output"
+    workshop_prompt: "With system ON and fault present: is there 24–28 VDC at the Pressure Switch High Pressure (N/O) terminal (Stauff Terminal 4)?"
+    show_in_field: false
     test_method: |
-      System ON, pressure normal.
-      Measure voltage at Stauff Terminal 4.
+      Preconditions / Notes:
+      - System ON
+      - Fault present
+      - (Ideally) hydraulic pressure in normal range and DOOR CLOSE LED illuminated
+
+      Method:
+      - Measure voltage at the High Pressure (N/O) terminal on the pressure switch.
+      - On Stauff pressure switches, this is Terminal 4.
     visual_refs:
       - Pic 4
       - Pic 5
@@ -133,6 +191,24 @@ nodes:
     answers:
       "yes": q_relay_output
       "no": r_replace_pressure_switch
+
+  r_replace_pressure_switch:
+    type: result
+    title: "Workshop Result — Pressure Switch Fault / Not Closing"
+    outcome: |
+      No voltage at High Pressure (N/O) when expected.
+      Likely pressure switch faulty or not closing correctly.
+
+      Action:
+      - Replace the pressure switch and re-test.
+      - Seal against water ingress using DC4 silicone grease.
+    next:
+      - label: "Go to 1.4 Relay Check"
+        node: q_relay_output
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+
 
 
    # ---------------- 1.4 RELAY (WORKSHOP ONLY) ----------------
@@ -205,6 +281,20 @@ nodes:
       "yes": r_delivery_ok_upstream_check_pump_or_load
       "no": q_continuity_relay_to_anderson
 
+  r_delivery_ok_upstream_check_pump_or_load:
+    type: result
+    title: "Workshop Result — Power Delivery OK at Anderson Plug"
+    outcome: |
+      Power is present at the Anderson plug with contacts locked.
+      Upstream control path appears serviceable.
+
+      Next:
+      - Verify pump/load connection and condition.
+      - Inspect wiring/connector integrity at the pump end.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   # Step 2 — Power Wire Continuity (Workshop only)
   q_continuity_relay_to_anderson:
@@ -224,6 +314,31 @@ nodes:
       "yes": r_ground_missing_at_anderson
       "no": r_faulty_wire_relay_to_anderson
 
+  r_ground_missing_at_anderson:
+    type: result
+    title: "Workshop Result — Missing Ground at Anderson Plug"
+    outcome: |
+      Power feed continuity is OK.
+
+      Action:
+      - Ensure the other Anderson plug terminal has a suitable ground.
+      - If ground is missing, investigate the ground path and connections.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  r_faulty_wire_relay_to_anderson:
+    type: result
+    title: "Workshop Result — Relay → Anderson Power Wire Fault"
+    outcome: |
+      No continuity between relay output and Anderson plug power pin.
+
+      Action:
+      - Inspect and repair wiring between the relay and the Anderson plug.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
 
   # Step 4 — Control Power (Workshop only)
   q_relay_control_power:
@@ -240,6 +355,21 @@ nodes:
     answers:
       "yes": q_relay_control_ground
       "no": r_control_power_feed_fault_or_return_to_pressure_switch
+
+  r_control_power_feed_fault_or_return_to_pressure_switch:
+    type: result
+    title: "Workshop Result — Relay Control Power Feed Fault"
+    outcome: |
+      No control power at the relay control terminal with system ON and pressure normal.
+
+      Action:
+      - If pressure switch was confirmed serviceable, check wiring between the pressure switch and relay control terminal.
+      - Otherwise return to the Pressure Switch check and confirm switch output.
+    next:
+      - label: "Go to 1.3 Pressure Switch"
+        node: q_pressure_switch_voltage
+      - label: "Start Over"
+        node: q_pressure_in_range
 
 
   # Step 5 — Control Ground (Workshop only)
@@ -258,6 +388,19 @@ nodes:
     answers:
       "yes": r_relay_fault_replace_pn24214
       "no": q_cc_replaced_and_retest
+
+  r_relay_fault_replace_pn24214:
+    type: result
+    title: "Workshop Result — Snorkel Pump Power Relay Fault"
+    outcome: |
+      Control power and control ground are present, but relay output does not switch.
+
+      Action:
+      - Replace relay and re-test.
+      - Use specified relay part number: P/N 24214 (200 A).
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
 
 
     # ---------------- 1.5 CYCLIC CONTROLLER ----------------
@@ -309,6 +452,8 @@ nodes:
       - label: "Start Over"
         node: q_pressure_in_range
 
+  # ---------------- 1.5 CYCLIC CONTROLLER MODE GATE ----------------
+
   q_db9_test_available:
     type: question
     title: "1.5 Workshop Test Availability — DB9 Continuity"
@@ -332,6 +477,8 @@ nodes:
     next:
       - label: "Start Over"
         node: q_pressure_in_range
+
+  # ---------------- 1.5 CYCLIC CONTROLLER WORKSHOP PATH ----------------
 
   q_db9_continuity_6_8:
     type: question
