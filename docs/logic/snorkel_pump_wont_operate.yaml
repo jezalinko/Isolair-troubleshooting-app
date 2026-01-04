@@ -44,8 +44,8 @@ nodes:
     field_prompt: "Are you operating in the field with a spare snorkel pump + cable onboard?"
     workshop_prompt: "Is this troubleshooting being done in a workshop environment?"
     answers:
-      "yes": q_motor_power_ground
-      "no": q_field_swap_spare_pump
+      "yes": q_field_swap_spare_pump
+      "no": q_motor_power_ground
 
 
   # ---------------- FIELD PATH ----------------
