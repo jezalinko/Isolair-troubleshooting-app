@@ -135,11 +135,52 @@ nodes:
       "no": r_replace_pressure_switch
 
 
-  # ---------------- 1.4 RELAY ----------------
+   # ---------------- 1.4 RELAY (WORKSHOP ONLY) ----------------
+
+  # Gate for FIELD users: do not run relay diagnostics in-field
+  q_relay_field_gate:
+    type: question
+    title: "1.4 Relay — Field Policy Gate"
+    field_prompt: "Are you currently in the FIELD (fireground) environment?"
+    workshop_prompt: "Proceed to relay testing?"
+    show_in_field: true
+    answers:
+      "yes": r_field_do_not_diagnose_relay
+      "no": q_relay_output
+
+
+  r_field_do_not_diagnose_relay:
+    type: result
+    title: "Field Policy — Do NOT Diagnose Relay In-Field"
+    outcome: |
+      In-field policy:
+        - Do NOT attempt relay electrical diagnosis in the field.
+        - Contact base/workshop and return to base when practical.
+
+      Reason (human factors / tooling):
+        - Relay testing requires time, access, and correct tools to avoid false results.
+
+      Optional field action:
+        - If a spare Cyclic Controller is available, you may perform the fast-swap check.
+    next:
+      - label: "Go to 1.5 Cyclic Controller (fast swap)"
+        node: q_cc_replaced_and_retest
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+
+  # ---------------- WORKSHOP PATH (full 1.4) ----------------
+
+  # Step 1 — Relay Output (Workshop only)
   q_relay_output:
     type: question
-    title: "1.4 Relay Output"
-    workshop_prompt: "Is 24–28 V present on the relay output when the switch is pressed?"
+    title: "1.4 Relay — Output Terminal Voltage"
+    workshop_prompt: "Only when Pump Switch is triggered: is there 24–28 V at the RELAY large output terminal?"
+    show_in_field: false
+    test_method: |
+      - Trigger the Pump Switch on the Cyclic Controller.
+      - Listen for a relay click inside the tank control box.
+      - Measure voltage at the large output terminal of the Snorkel Pump Power Relay.
     visual_refs:
       - Pic 7
     answers:
@@ -147,13 +188,244 @@ nodes:
       "no": q_relay_control_power
 
 
-  # ---------------- 1.5 CYCLIC CONTROLLER ----------------
+  # Step 1 follow-up — Power at Anderson plug (Workshop only)
+  q_power_at_anderson:
+    type: question
+    title: "1.4 Relay — Power at Anderson Plug"
+    workshop_prompt: "When Pump Switch is triggered: is power present at the Anderson plug AND contacts locked correctly?"
+    show_in_field: false
+    test_method: |
+      - Trigger Pump Switch.
+      - Check for power at the Snorkel Pump Anderson Plug.
+      - Confirm both Anderson contacts are fully locked into the housing.
+    visual_refs:
+      - Pic 3
+      - Pic 7
+    answers:
+      "yes": r_delivery_ok_upstream_check_pump_or_load
+      "no": q_continuity_relay_to_anderson
+
+
+  # Step 2 — Power Wire Continuity (Workshop only)
+  q_continuity_relay_to_anderson:
+    type: question
+    title: "1.4 Relay — Continuity Relay → Anderson"
+    workshop_prompt: "Is there continuity between relay LARGE output terminal and the Anderson plug power pin?"
+    show_in_field: false
+    test_method: |
+      - Disconnect the Anderson plug.
+      - Measure continuity between:
+        - Relay large output terminal
+        - Anderson plug power pin
+    visual_refs:
+      - Pic 2
+      - Pic 7
+    answers:
+      "yes": r_ground_missing_at_anderson
+      "no": r_faulty_wire_relay_to_anderson
+
+
+  # Step 4 — Control Power (Workshop only)
+  q_relay_control_power:
+    type: question
+    title: "1.4 Relay — Control Power Present"
+    workshop_prompt: "With system ON and pressure normal: is 24–28 V present at ONE small control terminal? (remove one control wire)"
+    show_in_field: false
+    test_method: |
+      - Remove one control wire from the relay (avoid false readings through the coil).
+      - Measure voltage at the remaining small control terminal.
+    visual_refs:
+      - Pic 7
+      - Pic 8
+    answers:
+      "yes": q_relay_control_ground
+      "no": r_control_power_feed_fault_or_return_to_pressure_switch
+
+
+  # Step 5 — Control Ground (Workshop only)
+  q_relay_control_ground:
+    type: question
+    title: "1.4 Relay — Control Ground When Triggered"
+    workshop_prompt: "Only when Pump Switch is triggered: is there ground at the OTHER small control terminal? (leave one wire disconnected)"
+    show_in_field: false
+    test_method: |
+      - Leave one control wire disconnected.
+      - Trigger the Pump Switch.
+      - Measure for ground on the other small terminal.
+    visual_refs:
+      - Pic 7
+      - Pic 8
+    answers:
+      "yes": r_relay_fault_replace_pn24214
+      "no": q_cc_replaced_and_retest
+
+
+    # ---------------- 1.5 CYCLIC CONTROLLER ----------------
+
+  q_cc_pump_switch_quick:
+    type: question
+    title: "1.5 Pump Switch Function (Quick Check)"
+    field_prompt: "Does the pump operate when the Pump Switch is triggered in either direction?"
+    workshop_prompt: "Does the snorkel pump operate when the Pump Switch is triggered in either direction?"
+    show_in_field: true
+    visual_refs:
+      - Pic 9
+      - Diagram 6.1
+    answers:
+      "yes": r_partial_switch_function_service_note
+      "no": q_cc_replaced_and_retest
+
+  r_partial_switch_function_service_note:
+    type: result
+    title: "Result — Pump Switch Partially Functional"
+    outcome: |
+      The Pump Switch is partially functional (one direction may work even if the other is faulty).
+      Action:
+        - Continue to operate if required.
+        - Replace the Cyclic Controller or repair the Pump Switch at the next maintenance opportunity.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
   q_cc_replaced_and_retest:
     type: question
     title: "1.5 Replace Cyclic Controller"
     field_prompt: "Replace cyclic controller with spare. Does pump now work?"
-    workshop_prompt: "Replace controller and re-test pump."
+    workshop_prompt: "Replace the Cyclic Controller with a serviceable unit and re-test. Does the pump now operate?"
     show_in_field: true
     answers:
       "yes": r_cc_faulty_keep_spare_installed
-      "no": q_db9_continuity_6_8
+      "no": q_db9_test_available
+
+  r_cc_faulty_keep_spare_installed:
+    type: result
+    title: "Field Result — Original Cyclic Controller Faulty"
+    outcome: |
+      After replacing the Cyclic Controller, the snorkel pump operates.
+      Field action:
+        - Keep the spare installed so the aircraft remains serviceable.
+        - Tag the faulty unit for workshop repair (Pump Switch/internal repair) to restore a spare controller.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  q_db9_test_available:
+    type: question
+    title: "1.5 Workshop Test Availability — DB9 Continuity"
+    field_prompt: "DB9 continuity test requires workshop tools. Can it be performed now?"
+    workshop_prompt: "Can you perform the DB9 continuity test now?"
+    show_in_field: true
+    answers:
+      "yes": q_db9_continuity_6_8
+      "no": r_field_cannot_perform_db9
+
+  r_field_cannot_perform_db9:
+    type: result
+    title: "Field Result — Workshop Test Not Available"
+    outcome: |
+      DB9 continuity testing cannot be performed now.
+      Field action:
+        - If a spare Cyclic Controller is installed, keep it installed to remain serviceable.
+        - If the pump still will not operate, contact base/workshop for support.
+      Next:
+        - Perform DB9/ground return tests in the workshop when tools/time allow.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  q_db9_continuity_6_8:
+    type: question
+    title: "1.5 DB9 Continuity (Pins 6 & 8)"
+    workshop_prompt: "Only when the Pump Switch is triggered: is there continuity between pins 6 and 8 on the DB9 connector?"
+    test_method: |
+      - Disconnect the DB9 connector from the rear of the Isolair Display Box (behind the DB25).
+      - Trigger the Pump Switch and check continuity between pins 6 and 8.
+    visual_refs:
+      - Pic 9
+      - Diagram 6.1
+    answers:
+      "yes": q_slot_m_ground
+      "no": r_cc_internal_fault_workshop_repair
+
+  r_cc_internal_fault_workshop_repair:
+    type: result
+    title: "Workshop Result — Cyclic Controller Internal Fault"
+    outcome: |
+      No continuity on DB9 pins 6–8 when the Pump Switch is triggered.
+      Likely fault: Pump Switch or internal wiring within the Cyclic Controller.
+      Workshop action:
+        - Repair/replace the Pump Switch and restore controller serviceability.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  q_slot_m_ground:
+    type: question
+    title: "1.5 Data Plug Ground (Slot M)"
+    workshop_prompt: "With system ON and main power connected: is there ground at slot M on the 24-pin data plug receptacle when the Pump Switch is triggered?"
+    test_method: |
+      - Ensure Isolair system is powered ON and main power plug remains connected.
+      - Disconnect the 24-pin data plug from the aircraft.
+      - Trigger the Pump Switch and check for ground at slot M on the receptacle.
+    visual_refs:
+      - Pic 10
+      - Diagram 6.1
+    answers:
+      "yes": q_continuity_m_to_relay_ground
+      "no": r_display_box_or_aircraft_wiring_fault
+
+  q_continuity_m_to_relay_ground:
+    type: question
+    title: "1.5 Tank Wiring Continuity (M → Relay Control Ground)"
+    workshop_prompt: "Is there continuity between pin M on the 24-pin data plug and the ground control terminal of the Snorkel Pump Power Relay?"
+    test_method: |
+      - With system safe, check continuity between pin M and the relay control ground terminal.
+      - Note: slave relays are not fitted; test directly to the Snorkel Pump Power Relay.
+    visual_refs:
+      - Pic 7
+      - Pic 8
+      - Pic 11
+      - Diagrams 6.3
+      - Diagrams 6.4
+      - Diagrams 6.5
+    answers:
+      "yes": r_recheck_relay_section
+      "no": r_tank_wiring_or_pin_fault
+
+  r_display_box_or_aircraft_wiring_fault:
+    type: result
+    title: "Likely Fault — Display Box / Aircraft Wiring to Data Plug"
+    outcome: |
+      No ground at slot M when the Pump Switch is triggered.
+      Likely fault: Isolair Display Box or wiring to the 24-pin data plug.
+      Action:
+        - Check wiring diagrams and/or replace the Isolair Display Box (spares at base).
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  r_tank_wiring_or_pin_fault:
+    type: result
+    title: "Likely Fault — Tank Wiring / Damaged Pin"
+    outcome: |
+      No continuity between pin M and relay control ground.
+      Likely fault: tank-side wiring or damaged pin in the 24-pin data plug.
+      Action:
+        - Inspect wiring/connectors and repair as required (Diagrams 6.3, 6.4, 6.5).
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+  r_recheck_relay_section:
+    type: result
+    title: "Tank Wiring OK — Re-check Relay Section"
+    outcome: |
+      Tank wiring is correct.
+      Next:
+        - Re-check Snorkel Pump Power Relay operation (Section 1.4) and verify correct relay identification.
+    next:
+      - label: "Start Over"
+        node: q_pressure_in_range
+
+   
+
