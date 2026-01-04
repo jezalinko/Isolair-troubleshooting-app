@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from curses import raw
 import sys
 import re
 from pathlib import Path
@@ -29,13 +30,29 @@ def read_yaml(path: Path) -> dict:
 
 
 def prompt_yes_no(prompt: str) -> str:
+    # CHANGE: Enhanced yes/no prompt for user flow
+    """
+    CHANGE: Accepts y/n PLUS:
+      - 'b' = go back to previous question
+      - 'c' = change context (Field <-> Workshop)
+      - 'q' = quit
+    Returns: 'yes' | 'no' | 'back' | 'change_context' | 'quit'
+    """
     while True:
-        ans = input(f"{prompt} [y/n]: ").strip().lower()
+        ans = input(f"{prompt} [y/n, b=back,c=change, q=quit]: ").strip().lower()
+
         if ans in YES:
             return "yes"
         if ans in NO:
             return "no"
-        print("Please enter y or n.")
+        if ans in ("b", "back"):
+            return "back"
+        if ans in ("c", "ctx", "context"):
+            return "change_context"
+        if ans in ("q", "quit", "exit"):
+            return "quit"
+
+        print("Please enter y, n, b, c, or q.")
 
 
 def choose_mode() -> str:
@@ -179,6 +196,8 @@ def run_flow(spec: dict) -> None:
     # CHANGE: choose global context once at start
     mode = choose_mode()
     print(f"\nContext set to: {mode.upper()}\n")
+    # CHANGE: history stack for back navigation
+    history: list[str] = []
 
     while True:
         if node_id not in nodes:
@@ -231,15 +250,44 @@ def run_flow(spec: dict) -> None:
         # -------------------------------
         # Question node
         # -------------------------------
-        if ntype == "question":
-            prompt = get_prompt_for_mode(node, mode)  # CHANGE
-            ans = prompt_yes_no(prompt)
-            next_id = node.get("answers", {}).get(ans)
-            if not next_id:
-                print(f"ERROR: No transition for answer '{ans}' from node '{node_id}'.")
-                return
-            node_id = next_id
-            continue
+                if ntype == "question":
+                    while True:
+                        prompt = get_prompt_for_mode(node, mode)
+                        ans = prompt_yes_no(prompt)
+
+                        # CHANGE: runtime controls
+                        if ans == "quit":
+                            print("\nExiting.\n")
+                            return
+
+                        if ans == "change_context":
+                            mode = "workshop" if mode == "field" else "field"
+                            print(f"\nContext changed to: {mode.upper()}\n")
+                            # Re-render the same node under the new mode
+                            continue
+                        if ans == "back":
+                            if history:
+                                node_id = history.pop()
+                                print("\n↩ Back\n")
+                                # Jump to previous node
+                                break
+                            print("No previous step to go back to.")
+                            continue
+
+                        # Normal yes/no flow
+                        next_id = node.get("answers", {}).get(ans)
+                        if not next_id:
+                            print(f"ERROR: No transition for answer '{ans}' from node '{node_id}'.")
+                            return
+
+                        # CHANGE: record current node before moving forward
+                        history.append(node_id)
+
+                        node_id = next_id
+                        break
+
+                    continue
+
 
         # -------------------------------
         # Result node
@@ -256,18 +304,19 @@ def run_flow(spec: dict) -> None:
                     print(f"{i}) {label}")
 
                 while True:
-                    raw = input("Select option: ").strip()
-                    if raw.isdigit():
-                        idx = int(raw)
-                        if 1 <= idx <= len(next_opts):
-                            picked = next_opts[idx - 1]
-                            target = picked.get("node")
-                            if isinstance(target, str) and target in nodes:
-                                node_id = target
-                                break
-                    print("Please enter a valid option number.")
-                continue
+                    raw = input("Select option [number, b=back, q=quit]: ").strip().lower()
 
+                    if raw in ("q", "quit", "exit"):
+                        print("\nExiting.\n")
+                        return
+
+                    if raw in ("b", "back"):
+                        if history:
+                            node_id = history.pop()
+                            print("\n↩ Back\n")
+                            break # exit menu loop, go back to main loop
+                        print("No previous step to go back to.")
+                        continue    # IMPORTANT: return to main loop with new node_id    
             print("\nDone.\n")
             return
 

@@ -104,3 +104,9 @@ coverage/
 docs/extracted_md/_exports/
 docs/images/_exports/
 
+# ===== NOTES =====
+## At any question:
+type c → flips Field ⇄ Workshop and re-asks the same question using the other prompt + showing/hiding details based on mode
+type q → exits cleanly
+type b → goes back one step 
+

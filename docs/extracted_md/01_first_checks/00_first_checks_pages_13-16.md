@@ -20,23 +20,6 @@ FIRST CHECK - SNORKEL PUMP WON’T OPERATE
 * But tank otherwise works as normal.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 If above checks fail to locate the problem, begin troubleshooting again at;
 1- Snorkel Pump Wont Operate
 Is the green ‘DOOR CLOSE’ LED illuminated on the Isolair Display Box?
