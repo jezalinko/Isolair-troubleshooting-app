@@ -1,0 +1,521 @@
+meta:
+  id: first_checks
+  title: "First Checks"
+  scope: "in-field quick checks"
+  notes:
+    - "Embedded first-check decision trees"
+    - "Start page is a menu (result.next)"
+    - "Questions are strictly yes/no (question.answers)"
+
+entry: r_start_menu
+
+nodes:
+
+  # =====================================================
+  # START PAGE — Symptom Selection (MUST be a RESULT menu)
+  # =====================================================
+  r_start_menu:
+    type: result
+    text: "Select the observed symptom:"
+    next:
+      - label: "Hydraulic Pump Continues To Run"
+        node: hp_r_intro
+      - label: "Snorkel Pump Won’t Operate"
+        node: sp_q1_door_close_led
+      - label: "System Won’t Turn On"
+        node: r_system_placeholder
+      - label: "Uncommanded Door Opening"
+        node: r_door_placeholder
+      - label: "Quit"
+        node: r_quit
+
+
+  # =====================================================
+  # FIRST CHECK — SNORKEL PUMP WON'T OPERATE (Embedded)
+  # =====================================================
+
+  # Step 1 — Control Box Check
+  sp_q1_door_close_led:
+    type: question
+    prompt: "Is the green 'DOOR CLOSE' LED illuminated on the Isolair Display Box?"
+    answers:
+      "yes": sp_q2_pump_switch_one_direction
+      "no": sp_q3_change_pressure_switch
+
+  # Step 2 — Cyclic Controller Check
+  sp_q2_pump_switch_one_direction:
+    type: question
+    prompt: >
+      Trigger the Pump Switch in both directions on the Cyclic Controller.
+      Does the Snorkel Pump operate in either direction (one direction only)?
+    answers:
+      "yes": sp_r_partial_operation
+      "no": sp_q4_hear_relay_click
+
+  sp_r_partial_operation:
+    type: result
+    text: >
+      Pump Switch is faulty but still operates in one direction.
+      Continue use if necessary, but replace Cyclic Controller ASAP.
+    next:
+      - label: "Proceed to Thorough Checks"
+        node: sp_r_thorough_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # Step 3 — Pressure Switch Check
+  sp_q3_change_pressure_switch:
+    type: question
+    prompt: "Change the Pressure Switch. Does the Snorkel Pump now work?"
+    answers:
+      "yes": sp_r_pressure_switch_faulty
+      "no": sp_r_through_1_3_pressure_switch
+
+  sp_r_pressure_switch_faulty:
+    type: result
+    text: "Pressure Switch was faulty."
+    next:
+      - label: "Proceed to Thorough Checks"
+        node: sp_r_thorough_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # Step 4 — Power Relay Check
+  sp_q4_hear_relay_click:
+    type: question
+    prompt: >
+      Can you hear the Snorkel Pump Power Relay energize when you trigger the Pump Switch?
+      (A distinct clicking noise will be heard inside the tank control box.)
+    answers:
+      "yes": sp_q6_change_pump
+      "no": sp_q5_change_cyclic_controller
+
+  # Step 5 — Change Cyclic Controller
+  sp_q5_change_cyclic_controller:
+    type: question
+    prompt: "Change the Cyclic Controller. Does the Snorkel Pump now operate?"
+    answers:
+      "yes": sp_r_faulty_cyclic_controller
+      "no": sp_r_through_1_4_relay
+
+  sp_r_faulty_cyclic_controller:
+    type: result
+    text: >
+      Faulty Cyclic Controller (Pump Switch).
+      Secure new Cyclic Controller to remain serviceable.
+      Tag faulty unit for workshop replacement ASAP.
+    next:
+      - label: "Proceed to Thorough Checks"
+        node: sp_r_thorough_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # Step 6 — Change Snorkel Pump
+  sp_q6_change_pump:
+    type: question
+    prompt: "Change the Snorkel Pump with a spare. Does the new Snorkel Pump work?"
+    answers:
+      "yes": sp_r_faulty_snorkel_pump
+      "no": sp_r_through_1_1_quick_check
+
+  sp_r_faulty_snorkel_pump:
+    type: result
+    text: >
+      Faulty Snorkel Pump.
+      Continue to use the new pump.
+      Tank Technician or Avionics to troubleshoot faulty pump at base.
+    next:
+      - label: "Proceed to Thorough Checks"
+        node: sp_r_thorough_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+
+  # =====================================================
+  # THOROUGH CHECK HANDOFF MENU (Snorkel)
+  # (These can later link into your 02_thorough_checks logic)
+  # =====================================================
+  sp_r_thorough_menu:
+    type: result
+    text: "Proceed to Thorough Checks — Snorkel Pump Won’t Operate:"
+    next:
+      - label: "1.1 Quick Check"
+        node: sp_r_through_1_1_quick_check
+      - label: "1.2 Motor Check"
+        node: sp_r_through_1_2_motor_check
+      - label: "1.3 Pressure Switch"
+        node: sp_r_through_1_3_pressure_switch
+      - label: "1.4 Relay"
+        node: sp_r_through_1_4_relay
+      - label: "1.5 Cyclic Pump Switch"
+        node: sp_r_through_1_5_cyclic_pump_switch
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # Individual thorough-check exits (for now these are just clean endpoints)
+  sp_r_through_1_1_quick_check:
+    type: result
+    text: "Handoff: Thorough Check 1.1 — Quick Check (logic hookup TBD)."
+
+  sp_r_through_1_2_motor_check:
+    type: result
+    text: "Handoff: Thorough Check 1.2 — Motor Check (logic hookup TBD)."
+
+  sp_r_through_1_3_pressure_switch:
+    type: result
+    text: "Handoff: Thorough Check 1.3 — Pressure Switch (logic hookup TBD)."
+
+  sp_r_through_1_4_relay:
+    type: result
+    text: "Handoff: Thorough Check 1.4 — Relay (logic hookup TBD)."
+
+  sp_r_through_1_5_cyclic_pump_switch:
+    type: result
+    text: "Handoff: Thorough Check 1.5 — Cyclic Pump Switch (logic hookup TBD)."
+
+
+    # =====================================================
+  # FIRST CHECK — HYDRAULIC PUMP CONTINUES TO RUN (Embedded)
+  # Source: hydraulic_pump_continues.md
+  # =====================================================
+
+  hp_r_intro:
+    type: result
+    text: >
+      First Check — HYDRAULIC PUMP CONTINUES TO RUN
+
+      Note: The most common problem is the Pressure Switch failing.
+      IMPORTANT: Do not throw Pressure Switches away — they may only need re-adjusting.
+    next:
+      - label: "Continue"
+        node: hp_r_step_1_pressure_menu
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # Step 1 — Pressure range selection (STRICT MENU)
+  hp_r_step_1_pressure_menu:
+    type: result
+    text: "Step 1 — What is the Hydraulic Pressure? (Check Pressure Gauge)"
+    next:
+      - label: "High (>1150 psi)"
+        node: hp_q_step_2a_change_pressure_switch
+      - label: "Medium (850–1150 psi)"
+        node: hp_r_step_2b_action_adjust_pump_output
+      - label: "Low (<850 psi; most likely ~50 psi)"
+        node: hp_r_step_2c_action_change_cyclic_controller
+      - label: "Back"
+        node: hp_r_intro
+      - label: "Quit"
+        node: r_quit
+
+    # -----------------------------
+  # Step 2A — High pressure path (smoothed)
+  # -----------------------------
+  hp_q_step_2a_change_pressure_switch:
+    type: question
+    prompt: >
+      Step 2A — Action: Change Pressure Switch.
+
+      AFTER completing the action:
+      Does the Hydraulic Pump now operate properly?
+    answers:
+      "yes": hp_r_step_2a_yes_pressure_switch_set_too_low
+      "no": hp_r_step_2a_no_recheck_pressure_menu
+
+
+  hp_r_step_2a_yes_pressure_switch_set_too_low:
+    type: result
+    text: >
+      YES — Pressure Switch was set too low.
+      DO NOT discard; re-set pressure (see Part 3.9 — Pressure Switch Adjustment).
+    next:
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # If NO in 2A, we need a decision based on re-checked pressure (menu)
+  hp_r_step_2a_no_recheck_pressure_menu:
+    type: result
+    text: >
+      NO — Re-check Hydraulic Pressure on the gauge.
+
+      Select the observed pressure:
+    next:
+      - label: "Below 1300 psi"
+        node: hp_r_step_2a_no_below_1300_reset_pump_output
+      - label: "Above 1300 psi"
+        node: hp_r_step_2a_no_above_1300_possible_faulty_relay
+      - label: "Back"
+        node: hp_r_step_2a_action_change_pressure_switch
+      - label: "Quit"
+        node: r_quit
+
+  hp_r_step_2a_no_below_1300_reset_pump_output:
+    type: result
+    text: >
+      Pressure below 1300 psi:
+      Re-set Hydraulic Pump output pressure (see Part 3.8 — Hydraulic Pump Output Pressure Adjustment).
+    next:
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  hp_r_step_2a_no_above_1300_possible_faulty_relay:
+    type: result
+    text: >
+      Pressure above 1300 psi:
+      Possible faulty Hydraulic Pump relay.
+      Continue with Para. 3.3.1 — Pressure Switch Check (Thorough / Workshop path).
+    next:
+      - label: "Proceed to Thorough Checks (Hydraulic)"
+        node: hp_r_through_3_3_1_pressure_switch_check
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # -----------------------------
+  # Step 2B — Medium pressure path
+  # -----------------------------
+  hp_r_step_2b_action_adjust_pump_output:
+    type: result
+    text: >
+      Step 2B — Action: Adjust Hydraulic Pump output pressure.
+
+      ⚠️ WARNING:
+      This adjustment must be completed by Authorised Personnel / Tank Technicians only.
+    next:
+      - label: "View Part 3.8 — Output Pressure Adjustment"
+        node: hp_r_through_3_8_pump_output_pressure_adjust
+      - label: "Continue"
+        node: hp_q_step_2b_operate_properly
+      - label: "Back"
+        node: hp_r_step_1_pressure_menu
+      - label: "Quit"
+        node: r_quit
+
+
+  hp_q_step_2b_operate_properly:
+    type: question
+    prompt: "Does the Hydraulic Pump now operate properly?"
+    answers:
+      "yes": hp_r_step_2b_yes_pressure_was_set_too_low
+      "no": hp_r_step_2b_no_proceed_to_2a
+
+  hp_r_step_2b_yes_pressure_was_set_too_low:
+    type: result
+    text: "YES — Pressure was set too low."
+    next:
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  hp_r_step_2b_no_proceed_to_2a:
+    type: result
+    text: "NO — Proceed to Step 2A (Pressure Switch Check)."
+    next:
+      - label: "Go to Step 2A"
+        node: hp_r_step_2a_action_change_pressure_switch
+      - label: "Back"
+        node: hp_r_step_2b_action_adjust_pump_output
+      - label: "Quit"
+        node: r_quit
+
+  # -----------------------------
+  # Step 2C — Low pressure path
+  # -----------------------------
+  hp_r_step_2c_action_change_cyclic_controller:
+    type: result
+    text: "Step 2C — Action: Change Cyclic Controller."
+    next:
+      - label: "Continue"
+        node: hp_q_step_2c_operate_properly
+      - label: "Back"
+        node: hp_r_step_1_pressure_menu
+      - label: "Quit"
+        node: r_quit
+
+  hp_q_step_2c_operate_properly:
+    type: question
+    prompt: "Does the Hydraulic Pump now operate properly?"
+    answers:
+      "yes": hp_r_step_2c_yes_faulty_jettison_switch
+      "no": hp_q_step_3_solenoid_power_ground
+
+  hp_r_step_2c_yes_faulty_jettison_switch:
+    type: result
+    text: >
+      YES — Most likely a faulty Jettison Switch.
+      Replace Cyclic Controller.
+    next:
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # -----------------------------
+  # Step 3 — Solenoid power/ground check
+  # -----------------------------
+  hp_q_step_3_solenoid_power_ground:
+    type: question
+    prompt: >
+      Step 3 — With system power ON, is there power and ground at the Jettison Solenoid terminals?
+      (At least one wire must be removed when checking)
+    answers:
+      "yes": hp_r_step_3_yes_solenoid_fault_suspected
+      "no": hp_r_step_3_no_wiring_fault_suspected
+
+  hp_r_step_3_yes_solenoid_fault_suspected:
+    type: result
+    text: >
+      YES — Possibly a faulty Jettison Solenoid valve or coil.
+      Continue with Para. 4.2.2 — Jettison Solenoid Check (from Uncommanded Door Opening).
+    next:
+      - label: "Proceed to Thorough Checks (Para. 4.2.2)"
+        node: hp_r_through_4_2_2_jettison_solenoid_check
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  hp_r_step_3_no_wiring_fault_suspected:
+    type: result
+    text: >
+      NO — Wiring fault suspected.
+      Continue with Para. 3.5.1 — Jettison Solenoid Check.
+    next:
+      - label: "Proceed to Thorough Checks (Para. 3.5.1)"
+        node: hp_r_through_3_5_1_jettison_solenoid_check
+      - label: "End Menu"
+        node: hp_r_end_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # =====================================================
+  # END MENU — HYDRAULIC FIRST CHECK COMPLETE
+  # =====================================================
+  hp_r_end_menu:
+    type: result
+    text: "Hydraulic Pump Continues To Run — Next action?"
+    next:
+      - label: "Proceed to Thorough Checks (Hydraulic)"
+        node: hp_r_thorough_menu
+      - label: "Start Over"
+        node: r_start_menu
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  # =====================================================
+  # THOROUGH CHECK HANDOFFS (Hydraulic placeholders)
+  # =====================================================
+  hp_r_thorough_menu:
+    type: result
+    text: "Proceed to Thorough Checks — Hydraulic Pump Continues (handoff points):"
+    next:
+      - label: "Para. 3.3.1 — Pressure Switch Check"
+        node: hp_r_through_3_3_1_pressure_switch_check
+      - label: "Para. 3.8 — Pump Output Pressure Adjustment"
+        node: hp_r_through_3_8_pump_output_pressure_adjust
+      - label: "Para. 3.9 — Pressure Switch Adjustment"
+        node: hp_r_through_3_9_pressure_switch_adjust
+      - label: "Para. 3.5.1 — Jettison Solenoid Check"
+        node: hp_r_through_3_5_1_jettison_solenoid_check
+      - label: "Para. 4.2.2 — Jettison Solenoid Check (Door Opening section)"
+        node: hp_r_through_4_2_2_jettison_solenoid_check
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  hp_r_through_3_3_1_pressure_switch_check:
+    type: result
+    text: "Handoff: Para. 3.3.1 — Pressure Switch Check (logic hookup TBD)."
+
+  hp_r_through_3_8_pump_output_pressure_adjust:
+    type: result
+    text: "Handoff: Para. 3.8 — Hydraulic Pump Output Pressure Adjustment (logic hookup TBD)."
+
+  hp_r_through_3_9_pressure_switch_adjust:
+    type: result
+    text: "Handoff: Para. 3.9 — Pressure Switch Adjustment (logic hookup TBD)."
+
+  hp_r_through_3_5_1_jettison_solenoid_check:
+    type: result
+    text: "Handoff: Para. 3.5.1 — Jettison Solenoid Check (logic hookup TBD)."
+
+  hp_r_through_4_2_2_jettison_solenoid_check:
+    type: result
+    text: "Handoff: Para. 4.2.2 — Jettison Solenoid Check (logic hookup TBD)."
+
+
+
+
+  # =====================================================
+  # Placeholders for the other First Checks (we’ll embed next)
+  # =====================================================
+  
+  r_system_placeholder:
+    type: result
+    text: "TODO: Embed First Check — System Won’t Turn On here."
+    next:
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+  r_door_placeholder:
+    type: result
+    text: "TODO: Embed First Check — Uncommanded Door Opening here."
+    next:
+      - label: "Back"
+        node: r_start_menu
+      - label: "Quit"
+        node: r_quit
+
+
+  # =====================================================
+  # Quit
+  # =====================================================
+  r_quit:
+    type: result
+    text: "Exiting First Checks."
+
