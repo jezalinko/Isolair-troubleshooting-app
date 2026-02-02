@@ -42,12 +42,13 @@ def main() -> None:
     if not PDF_PATH.exists():
         raise FileNotFoundError(f"PDF not found at {PDF_PATH.resolve()}")
 
-    doc = fitz.open(str(PDF_PATH))
-
-    body = extract_pages(doc, start_page=17, end_page=30)
-
-    write_markdown(
-        out_path=OUTPUT_ROOT / "02_thorough_checks" / "system_wont_turn_on" / "00_overview.md",
+    with fitz.open(str(PDF_PATH)) as doc:
+        body = extract_pages(doc, start_page=30, end_page=43)
+        write_markdown(
+        out_path=OUTPUT_ROOT 
+        / "02_thorough_checks" 
+        / "system_wont_turn_on" 
+        / "00_overview.md",
         title="System Won’t Turn On",
         source_pages="30–43",
         body=body,

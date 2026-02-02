@@ -42,12 +42,13 @@ def main() -> None:
     if not PDF_PATH.exists():
         raise FileNotFoundError(f"PDF not found at {PDF_PATH.resolve()}")
 
-    doc = fitz.open(str(PDF_PATH))
-
-    body = extract_pages(doc, start_page=17, end_page=30)
-
-    write_markdown(
-        out_path=OUTPUT_ROOT / "02_thorough_checks" / "uncommanded_door_opening" / "00_overview.md",
+    with fitz.open(str(PDF_PATH)) as doc:
+        body = extract_pages(doc, start_page=59, end_page=66)
+        write_markdown(
+        out_path=OUTPUT_ROOT 
+        / "02_thorough_checks" 
+        / "uncommanded_door_opening" 
+        / "00_overview.md",
         title="Uncommanded Door Opening",
         source_pages="59–66",
         body=body,
