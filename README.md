@@ -47,7 +47,7 @@ isolair-troubleshooting-app/
 
 ## `.gitignore`
 
-This is a safe, practical ignore set for your current structure + future Node/React + Python scripts:
+This is a safe, practical ignore set for current structure + future Node/React + Python scripts:
 
 ```gitignore
 # ===== OS / Editor =====
@@ -99,8 +99,8 @@ coverage/
 .nyc_output/
 
 # ===== PDFs / derived exports =====
-# Keep the source PDFs in git if you want versioned docs.
-# Ignore large derived outputs if you generate them later:
+# Keep the source PDFs in git for versioned docs.
+# Ignore large derived outputs for future generation:
 docs/extracted_md/_exports/
 docs/images/_exports/
 
