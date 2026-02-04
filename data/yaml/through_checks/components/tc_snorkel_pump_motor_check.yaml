@@ -1,0 +1,67 @@
+id: tc_snorkel_pump_motor_check
+title: "Through Check Component — Snorkel Pump Motor Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_1_snorkel_pump_wont_operate.md"
+
+entry: tc_spm_step_1_power_at_receptacle
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Power at Pump Connector (tank side)
+  # ------------------------------------------------------------
+  tc_spm_step_1_power_at_receptacle:
+    type: question
+    field_prompt: "When Pump Switch is triggered, is 24–28V and ground present at the tank-side pump receptacle?"
+    workshop_prompt: "Disconnect Snorkel Pump Anderson Plug (214). While Pump Switch is triggered: 24–28V present at tank receptacle + good ground?"
+    answers:
+      yes: tc_spm_result_power_present
+      no: tc_spm_result_power_missing
+
+  tc_spm_result_power_present:
+    type: result
+    field_prompt: "Power present. Pump assembly / ECC / power cable suspect. Swap to spare pump to remain serviceable."
+    workshop_prompt: "Power present at tank receptacle. Pump assembly/ECC/cable suspect. Swap to spare pump. Proceed to cable continuity check when practical."
+    outcome: "Power present at pump receptacle: suspect pump assembly/ECC/cable."
+    next:
+      - label: "Continue — Cable Continuity Check"
+        node: tc_spm_step_2_cable_continuity
+
+  tc_spm_result_power_missing:
+    type: result
+    field_prompt: "Power missing at pump receptacle. Proceed to Pressure Switch Check."
+    workshop_prompt: "No power/ground at tank receptacle. Proceed to Pressure Switch Check (control path)."
+    outcome: "Power missing at pump receptacle: proceed to Pressure Switch Check."
+    next:
+      - label: "Continue — Pressure Switch Check"
+        node: tc_pressure_switch_check
+
+  # ------------------------------------------------------------
+  # Step 2 — Cable Continuity Check
+  # ------------------------------------------------------------
+  tc_spm_step_2_cable_continuity:
+    type: question
+    field_prompt: "Is there continuity through both power and ground wires in the pump power cable?"
+    workshop_prompt: "Disconnect pump motor milspec plug + Anderson plug from tank. Check continuity on power + ground. Contacts locked in housing?"
+    answers:
+      yes: tc_spm_result_cable_ok
+      no: tc_spm_result_cable_fault
+
+  tc_spm_result_cable_ok:
+    type: result
+    field_prompt: "Cable OK. Pump motor likely faulty (ECC suspect). Continue using spare and replace ECC ASAP."
+    workshop_prompt: "Cable serviceable. Pump motor likely faulty (ECC most likely). Note: spare ECCs programmed for 214 snorkels only; authorised programming required."
+    outcome: "Cable OK: pump motor/ECC suspected. Replace ECC / pump assembly."
+    next:
+      - label: "Finish — Replace Snorkel Pump / ECC"
+        node: terminal_replace_snorkel_pump
+
+  tc_spm_result_cable_fault:
+    type: result
+    field_prompt: "Cable/Anderson plug fault suspected. Inspect and repair wiring/connectors."
+    workshop_prompt: "Faulty power cable or Anderson plug. Inspect/repair wiring and connectors."
+    outcome: "Cable/connector fault: repair required."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+

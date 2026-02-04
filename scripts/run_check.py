@@ -53,6 +53,16 @@ def prompt_yes_no(prompt: str) -> str:
 
         print("Please enter y, n, b, c, or q.")
 
+def normalize_answer_key(k: Any) -> str:
+    # Handle YAML 1.1 boolean coercion (yes/no -> True/False)
+    if k is True:
+        return "yes"
+    if k is False:
+        return "no"
+    if isinstance(k, str):
+        return k.strip().lower()
+    return str(k).strip().lower()
+
 
 def choose_mode() -> str:
     # CHANGE: Select Field vs Workshop at start
@@ -273,11 +283,18 @@ def run_flow(spec: dict) -> None:
                     continue
 
                 # Normal yes/no flow
-                next_id = node.get("answers", {}).get(ans)
-                if not next_id:
-                    print(f"ERROR: No transition for answer '{ans}' from node '{node_id}'.")
-                    return
+                # next_id = node.get("answers", {}).get(ans)
+                #if not next_id:
+                    #print(f"ERROR: No transition for answer '{ans}' from node '{node_id}'.")
+                    #return
+                answers = node.get("answers", {})
+                next_id = None
+                if isinstance(answers, dict):
+                    # Build normalized lookup so "yes"/"no" work even if YAML parsed keys as True/False
+                    norm = {normalize_answer_key(k): v for k, v in answers.items()}
+                    next_id = norm.get(ans)
 
+                    
                 history.append(node_id)  # CHANGE: record where we came from
                 node_id = next_id
                 break

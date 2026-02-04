@@ -1,0 +1,95 @@
+id: tc_snorkel_pump_power_relay_check
+title: "Through Check Component — Snorkel Pump Power Relay Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_1_snorkel_pump_wont_operate.md"
+
+entry: tc_spr_step_1_relay_output
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Relay Output
+  # ------------------------------------------------------------
+  tc_spr_step_1_relay_output:
+    type: question
+    field_prompt: "When Pump Switch is triggered, is 24–28V present at the relay large output terminal?"
+    workshop_prompt: "Trigger Pump Switch (listen for click). Measure relay large output terminal. 24–28V present only when triggered?"
+    answers:
+      yes: tc_spr_step_2_power_at_anderson
+      no: tc_spr_step_3_control_power_present
+
+  # ------------------------------------------------------------
+  # Step 2 — Verify power at Anderson plug
+  # ------------------------------------------------------------
+  tc_spr_step_2_power_at_anderson:
+    type: question
+    field_prompt: "When Pump Switch is triggered, is power present at the Snorkel Pump Anderson plug (tank side)?"
+    workshop_prompt: "Verify voltage at tank-side Anderson plug while Pump Switch is triggered. Power present?"
+    answers:
+      yes: tc_spr_result_power_at_anderson_yes
+      no: tc_spr_step_2b_continuity_relay_to_anderson
+
+  tc_spr_result_power_at_anderson_yes:
+    type: result
+    field_prompt: "Relay output and Anderson power are present. Proceed to Snorkel Pump Motor Check."
+    workshop_prompt: "Power reaching Anderson plug. Proceed to Snorkel Pump Motor Check."
+    outcome: "Relay OK and power reaches Anderson plug: proceed to motor/cable/ECC investigation."
+    next:
+      - label: "Continue — Snorkel Pump Motor Check"
+        node: tc_snorkel_pump_motor_check
+
+  tc_spr_step_2b_continuity_relay_to_anderson:
+    type: question
+    field_prompt: "Is there continuity between relay output terminal and Anderson plug power pin?"
+    workshop_prompt: "Continuity check between relay large output terminal and Anderson plug power pin. Continuity present?"
+    answers:
+      yes: tc_spr_result_wire_ok_no_power
+      no: tc_spr_result_wire_fault
+
+  tc_spr_result_wire_ok_no_power:
+    type: result
+    field_prompt: "Wire continuity OK but no power at Anderson. Inspect connectors/pins for damage or poor contact."
+    workshop_prompt: "Continuity OK. Inspect connector pins/contacts and terminations for high resistance or poor contact."
+    outcome: "Continuity OK but power not present at Anderson: connector/pin fault suspected."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  tc_spr_result_wire_fault:
+    type: result
+    field_prompt: "No continuity. Repair wiring between relay and Anderson plug."
+    workshop_prompt: "Repair wiring between relay output and Anderson plug."
+    outcome: "Repair wiring between relay output and Anderson plug."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  # ------------------------------------------------------------
+  # Step 3 — Relay Control Circuit
+  # ------------------------------------------------------------
+  tc_spr_step_3_control_power_present:
+    type: question
+    field_prompt: "Is control power present at relay coil (24–28V at small terminal when one control wire removed)?"
+    workshop_prompt: "Remove one relay control wire. Check remaining small terminal for 24–28V. Control power present?"
+    answers:
+      yes: tc_spr_result_control_power_yes
+      no: tc_spr_result_control_power_no
+
+  tc_spr_result_control_power_no:
+    type: result
+    field_prompt: "Control power missing. Return to Pressure Switch Check."
+    workshop_prompt: "No control power at relay coil. Return to Pressure Switch Check (output path)."
+    outcome: "Relay control power missing: return to Pressure Switch Check."
+    next:
+      - label: "Continue — Pressure Switch Check"
+        node: tc_pressure_switch_check
+
+  tc_spr_result_control_power_yes:
+    type: result
+    field_prompt: "Control power present. Proceed to Cyclic Controller Pump Switch Check."
+    workshop_prompt: "Control power present but relay not switching. Proceed to Cyclic Controller Pump Switch Check."
+    outcome: "Relay not switching with control power present: proceed to Cyclic Controller Pump Switch Check."
+    next:
+      - label: "Continue — Cyclic Controller Pump Switch Check"
+        node: tc_cyclic_controller_pump_switch_check
+

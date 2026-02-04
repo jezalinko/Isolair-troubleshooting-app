@@ -1,0 +1,181 @@
+id: tc_4_uncommanded_door_opening
+title: "Through Check — Uncommanded Door Opening"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_4_uncommanded_door_opening.md"
+
+entry: tc_uncommanded_door_opening
+
+nodes:
+
+  # ------------------------------------------------------------
+  # Entry — confirm fault
+  # ------------------------------------------------------------
+  tc_uncommanded_door_opening:
+    type: question
+    field_prompt: "Did the tank doors open without command (fault present)?"
+    workshop_prompt: "Confirm fault: doors open without a commanded door-open or jettison input. Fault present?"
+    answers:
+      yes: tc_4_step_1_doors_remain_up_after_empty
+      no: tc_4_result_fault_not_present
+
+
+  tc_4_result_fault_not_present:
+    type: result
+    field_prompt: "Fault not present. Monitor and re-check if symptom returns."
+    workshop_prompt: "Fault not present at time of test. Monitor and re-test if symptom returns."
+    outcome: "Fault not present at time of test."
+    next:
+      - label: "Finish"
+        node: terminal_fault_not_present
+
+
+  # ------------------------------------------------------------
+  # Step 1 — Door position after emptying
+  # (matches FC-4 Step 1 gate)
+  # ------------------------------------------------------------
+  tc_4_step_1_doors_remain_up_after_empty:
+    type: question
+    field_prompt: "When the problem occurred, did the doors remain UP (closed position) after the tank was emptied?"
+    workshop_prompt: "During the event, did the doors remain UP (closed position) after emptying?"
+    answers:
+      yes: tc_4_step_2_opened_fast_like_jettison
+      no: tc_4_step_3_pump_continues_running_with_doors_open
+
+
+  # ------------------------------------------------------------
+  # Step 2 — Speed discriminator (fast jettison vs slow leak)
+  # To keep schema strict (yes/no only), we express this as a yes/no question:
+  # YES = fast/jettison-like, NO = slow/leak-like
+  # ------------------------------------------------------------
+  tc_4_step_2_opened_fast_like_jettison:
+    type: question
+    field_prompt: "Did the doors open QUICKLY like a normal jettison release (high flow)?"
+    workshop_prompt: "Did the doors open quickly (jettison-like high flow), rather than slowly (leak-like low flow)?"
+    answers:
+      yes: tc_4_step_2b_controller_swap_resolved
+      no: tc_4_step_2a_cooling_resolved
+
+
+  # ------------------------------------------------------------
+  # Step 2A — Slow opening / overheating path (FC-4 Step 2A)
+  # ------------------------------------------------------------
+  tc_4_step_2a_cooling_resolved:
+    type: question
+    field_prompt: "After allowing the Jettison Solenoid to cool (system OFF between loads), does it now operate correctly?"
+    workshop_prompt: "If slow opening suggests heat-relaxation: after cooling the jettison solenoid (system OFF between loads), does the system now operate correctly?"
+    answers:
+      yes: tc_4_result_overheating_solenoid_identified
+      no: tc_4_result_go_jettison_solenoid_check
+
+
+  tc_4_result_overheating_solenoid_identified:
+    type: result
+    field_prompt: "Likely overheating jettison solenoid. Keep system OFF during refuelling/between loads. Monitor."
+    workshop_prompt: "Overheating jettison solenoid suspected (pressure relaxation). Confirm by repeat test; monitor operating practices."
+    outcome: "Overheating jettison solenoid suspected. Keep system OFF during refuelling/between loads; monitor."
+    next:
+      - label: "Finish — Monitor condition"
+        node: terminal_monitor_condition
+      - label: "Proceed — Jettison Solenoid Check"
+        node: tc_jettison_solenoid_check
+
+
+  tc_4_result_go_jettison_solenoid_check:
+    type: result
+    field_prompt: "Cooling did not resolve. Begin detailed troubleshooting at Jettison Solenoid Check."
+    workshop_prompt: "Cooling did not resolve. Begin detailed troubleshooting at Jettison Solenoid Check."
+    outcome: "Cooling did not resolve: proceed to Jettison Solenoid Check."
+    next:
+      - label: "Continue — Jettison Solenoid Check"
+        node: tc_jettison_solenoid_check
+
+
+  # ------------------------------------------------------------
+  # Step 2B — Fast opening / jettison switch path (FC-4 Step 2B)
+  # ------------------------------------------------------------
+  tc_4_step_2b_controller_swap_resolved:
+    type: question
+    field_prompt: "After swapping Cyclic Controller with a known serviceable unit, does the system now operate correctly?"
+    workshop_prompt: "Replace Cyclic Controller and re-test. Does the system now operate correctly?"
+    answers:
+      yes: tc_4_result_faulty_controller_jettison_switch
+      no: tc_4_result_go_jettison_switch_check
+
+
+  tc_4_result_faulty_controller_jettison_switch:
+    type: result
+    field_prompt: "Fault likely in Cyclic Controller (Jettison Switch). Replace controller."
+    workshop_prompt: "Fault traced to Cyclic Controller (Jettison Switch circuit). Replace/repair controller."
+    outcome: "Faulty Cyclic Controller (Jettison Switch circuit) suspected."
+    next:
+      - label: "Finish — Replace Cyclic Controller"
+        node: terminal_replace_cyclic_controller
+      - label: "Continue — Jettison Switch Check"
+        node: tc_jettison_switch_check
+
+
+  tc_4_result_go_jettison_switch_check:
+    type: result
+    field_prompt: "Controller swap did not resolve. Begin detailed troubleshooting at Jettison Switch Check."
+    workshop_prompt: "Controller swap did not resolve. Begin detailed troubleshooting at Jettison Switch Check."
+    outcome: "Controller swap did not resolve: proceed to Jettison Switch Check."
+    next:
+      - label: "Continue — Jettison Switch Check"
+        node: tc_jettison_switch_check
+
+
+  # ------------------------------------------------------------
+  # Step 3 — Doors open and remain open / pump behavior (FC-4 Step 3)
+  # ------------------------------------------------------------
+  tc_4_step_3_pump_continues_running_with_doors_open:
+    type: question
+    field_prompt: "With system ON, does the Hydraulic Pump continue running while the door(s) remain open?"
+    workshop_prompt: "Confirm: with system ON, pump continues running and door(s) remain open. Is this occurring?"
+    answers:
+      yes: tc_4_step_3a_controller_swap_resolved
+      no: tc_4_result_internal_door_fault_mechanical
+
+
+  tc_4_result_internal_door_fault_mechanical:
+    type: result
+    field_prompt: "If door(s) remain open with system OFF, an internal door fault is likely. Mechanical investigation required."
+    workshop_prompt: "Door(s) remain open without pump-running symptom. Internal door fault likely. Mechanical investigation required."
+    outcome: "Internal door fault suspected: mechanical investigation required."
+    next:
+      - label: "Finish — Mechanical investigation required"
+        node: terminal_mechanical_investigation_required
+
+
+  # ------------------------------------------------------------
+  # Step 3A — Door switch / cross-over path (FC-4 Step 3A)
+  # ------------------------------------------------------------
+  tc_4_step_3a_controller_swap_resolved:
+    type: question
+    field_prompt: "After swapping Cyclic Controller with a known serviceable unit, does the system now operate correctly?"
+    workshop_prompt: "Replace Cyclic Controller and re-test. Does the system now operate correctly?"
+    answers:
+      yes: tc_4_result_faulty_controller_door_switch
+      no: tc_4_result_go_hydraulic_cross_over_check
+
+
+  tc_4_result_faulty_controller_door_switch:
+    type: result
+    field_prompt: "Fault likely in Cyclic Controller (Door Switch). Replace controller."
+    workshop_prompt: "Fault traced to Cyclic Controller (Door Switch circuit). Replace/repair controller."
+    outcome: "Faulty Cyclic Controller (Door Switch circuit) suspected."
+    next:
+      - label: "Finish — Replace Cyclic Controller"
+        node: terminal_replace_cyclic_controller
+      - label: "Continue — Cyclic Controller Door Switch Check"
+        node: tc_cyclic_controller_door_switch_check
+
+
+  tc_4_result_go_hydraulic_cross_over_check:
+    type: result
+    field_prompt: "Controller swap did not resolve. Cross-over valve possibly faulty. Begin Hydraulic Cross-over Check."
+    workshop_prompt: "Controller swap did not resolve. Cross-over valve possibly faulty. Begin Hydraulic Cross-over Check."
+    outcome: "Proceed to Hydraulic Cross-over Check."
+    next:
+      - label: "Continue — Hydraulic Cross-over Check"
+        node: tc_hydraulic_cross_over_check

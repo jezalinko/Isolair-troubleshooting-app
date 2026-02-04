@@ -1,0 +1,38 @@
+id: tc_wiring_continuity_checks
+title: "Through Check Component — Wiring Continuity Checks"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_2_hydraulic_pump_wont_turn_on.md"
+
+entry: tc_wiring_continuity_checks
+
+nodes:
+
+  tc_wiring_continuity_checks:
+    type: question
+    field_prompt: "Wiring continuity checks are workshop-only. Are you in a workshop environment now?"
+    workshop_prompt: "Proceed with wiring continuity checks using wiring diagram. Are you in a workshop environment now?"
+    answers:
+      yes: tc_wcc_result_proceed_workshop
+      no: tc_wcc_result_workshop_required
+
+
+  tc_wcc_result_workshop_required:
+    type: result
+    field_prompt: "Wiring checks are workshop-only. Escalate to base maintenance."
+    workshop_prompt: "Wiring checks are workshop-only. Proceed under workshop procedures."
+    outcome: "Workshop required for wiring continuity checks."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+
+  tc_wcc_result_proceed_workshop:
+    type: result
+    field_prompt: "Proceed with wiring continuity checks per wiring diagram (connectors, grounds, and harness continuity)."
+    workshop_prompt: "Proceed with continuity/inspection per wiring diagram: verify connectors seated/pins, grounds, and continuity between Display Box → Pressure Switch → Relay control circuit."
+    outcome: "Proceed with workshop wiring continuity checks per wiring diagram."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+

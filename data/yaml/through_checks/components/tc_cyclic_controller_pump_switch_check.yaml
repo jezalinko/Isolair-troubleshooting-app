@@ -1,0 +1,117 @@
+id: tc_cyclic_controller_pump_switch_check
+title: "Through Check Component — Cyclic Controller Pump Switch Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_1_snorkel_pump_wont_operate.md"
+
+entry: tc_ccps_step_1_operates_either_direction
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Pump Switch Function
+  # ------------------------------------------------------------
+  tc_ccps_step_1_operates_either_direction:
+    type: question
+    field_prompt: "Does the snorkel pump operate when Pump Switch is triggered in either direction?"
+    workshop_prompt: "Trigger Pump Switch in both directions. Does pump operate in either direction?"
+    answers:
+      yes: tc_ccps_result_partial_function
+      no: tc_ccps_step_1b_swap_controller
+
+  tc_ccps_result_partial_function:
+    type: result
+    field_prompt: "Pump Switch partially functional. Replace/repair Cyclic Controller at next maintenance."
+    workshop_prompt: "Pump Switch partially functional. Schedule Cyclic Controller repair/replacement (workshop)."
+    outcome: "Pump switch partially functional: controller service required."
+    next:
+      - label: "Finish — Monitor / plan maintenance"
+        node: terminal_monitor_condition
+
+  tc_ccps_step_1b_swap_controller:
+    type: question
+    field_prompt: "After swapping Cyclic Controller with a spare, does the pump operate?"
+    workshop_prompt: "Replace Cyclic Controller (field swap policy). Re-test. Pump operates now?"
+    answers:
+      yes: tc_ccps_result_controller_replaced
+      no: tc_ccps_step_2_db9_continuity
+
+  tc_ccps_result_controller_replaced:
+    type: result
+    field_prompt: "Cyclic Controller replacement resolved the issue."
+    workshop_prompt: "Cyclic Controller replacement resolved the issue."
+    outcome: "Replace Cyclic Controller (fault traced to controller)."
+    next:
+      - label: "Finish — Replace Cyclic Controller"
+        node: terminal_replace_cyclic_controller
+
+  # ------------------------------------------------------------
+  # Step 2 — DB9 continuity pins 6 & 8
+  # ------------------------------------------------------------
+  tc_ccps_step_2_db9_continuity:
+    type: question
+    field_prompt: "When Pump Switch is triggered, is there continuity between DB9 pins 6 and 8?"
+    workshop_prompt: "Measure continuity across DB9 pins 6 and 8 while actuating Pump Switch. Continuity present?"
+    answers:
+      yes: tc_ccps_step_3_ground_slot_m
+      no: tc_ccps_result_switch_fault_workshop
+
+  tc_ccps_result_switch_fault_workshop:
+    type: result
+    field_prompt: "No continuity. Pump switch fault — workshop repair/replace required."
+    workshop_prompt: "Pump switch has no continuity (pins 6 & 8). Repair/replace switch in workshop."
+    outcome: "Pump switch fault: workshop repair/replace required."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  # ------------------------------------------------------------
+  # Step 3 — Data plug ground slot M
+  # ------------------------------------------------------------
+  tc_ccps_step_3_ground_slot_m:
+    type: question
+    field_prompt: "When Pump Switch is triggered, is ground present at slot M on the 24-pin data plug?"
+    workshop_prompt: "Measure ground at slot M on 24-pin data plug while Pump Switch actuated. Ground present?"
+    answers:
+      yes: tc_ccps_step_4_continuity_m_to_relay_ground
+      no: tc_ccps_result_display_box_or_wiring_fault
+
+  tc_ccps_result_display_box_or_wiring_fault:
+    type: result
+    field_prompt: "Ground missing at data plug. Fault suspected in Display Box or wiring."
+    workshop_prompt: "No ground at slot M during command. Suspect Display Box or wiring. Proceed to wiring continuity checks."
+    outcome: "Ground missing at data plug: suspect Display Box / wiring."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  # ------------------------------------------------------------
+  # Step 4 — Continuity pin M to relay ground control terminal
+  # ------------------------------------------------------------
+  tc_ccps_step_4_continuity_m_to_relay_ground:
+    type: question
+    field_prompt: "Is there continuity between data plug pin M and relay ground control terminal?"
+    workshop_prompt: "Continuity check between 24-pin data plug pin M and Snorkel Pump Power Relay ground control terminal. Continuity present?"
+    answers:
+      yes: tc_ccps_result_loop_back_to_relay
+      no: tc_ccps_result_repair_tank_wiring
+
+  tc_ccps_result_loop_back_to_relay:
+    type: result
+    field_prompt: "Continuity OK. Re-check relay operation."
+    workshop_prompt: "Continuity OK. Loop back and re-check relay operation."
+    outcome: "Tank wiring continuity OK: re-check relay operation."
+    next:
+      - label: "Continue — Snorkel Pump Power Relay Check"
+        node: tc_snorkel_pump_power_relay_check
+
+  tc_ccps_result_repair_tank_wiring:
+    type: result
+    field_prompt: "No continuity. Repair tank wiring or connector pins."
+    workshop_prompt: "Repair tank wiring or connector pins (data plug to relay control ground)."
+    outcome: "Repair tank wiring / connector pins."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+

@@ -1,0 +1,158 @@
+id: tc_3_hydraulic_pump_continues_to_run
+title: "Through Check — Hydraulic Pump Continues To Run"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_3_hydraulic_pump_continues_to_run.md"
+
+entry: tc_hydraulic_pump_continues_to_run
+
+nodes:
+  # ------------------------------------------------------------
+  # Entry — Confirm fault
+  # ------------------------------------------------------------
+  tc_hydraulic_pump_continues_to_run:
+    type: question
+    field_prompt: "Is the Hydraulic Pump continuing to run (fault present)?"
+    workshop_prompt: "With system ON, confirm fault: Hydraulic Pump continues to run (no cut-out). Fault present?"
+    answers:
+      yes: tc_3_result_common_cause
+      no: tc_3_result_fault_not_present
+
+  tc_3_result_fault_not_present:
+    type: result
+    field_prompt: "Fault not present. Monitor system and re-check if fault returns."
+    workshop_prompt: "Fault not present. Monitor and re-test if symptom returns."
+    outcome: "Fault not present at time of test."
+    next:
+      - label: "Finish"
+        node: terminal_fault_not_present
+
+  # ------------------------------------------------------------
+  # Quick guidance — common cause
+  # ------------------------------------------------------------
+  tc_3_result_common_cause:
+    type: result
+    field_prompt: "Most common cause is an incorrectly set Pressure Switch. Proceed to Pressure Switch Check."
+    workshop_prompt: "Proceed to Pressure Switch Check. Do not replace Pressure Switch unnecessarily; many issues are adjustment-related."
+    outcome: "Proceed to Pressure Switch Check (common cause: incorrect Pressure Switch setting)."
+    next:
+      - label: "Continue — Pressure Switch Check"
+        node: tc_pressure_switch_check
+
+  # ------------------------------------------------------------
+  # 3.5 — Hydraulic Pump Power Relay Check (defined here so components can hand off)
+  # ------------------------------------------------------------
+  tc_hydraulic_pump_power_relay_check:
+    type: question
+    field_prompt: "During the fault, does the Hydraulic Pump Power Relay remain energised (relay stuck ON)?"
+    workshop_prompt: "Measure at relay output terminal while fault is present. Is relay output stuck energised?"
+    answers:
+      yes: tc_3_step_relay_control_check
+      no: tc_3_result_relay_deenergises
+
+  tc_3_result_relay_deenergises:
+    type: result
+    field_prompt: "Relay de-energises correctly. Proceed to Jettison Solenoid Check."
+    workshop_prompt: "Relay de-energises correctly. Proceed to Jettison Solenoid Check."
+    outcome: "Relay de-energises correctly: proceed to Jettison Solenoid Check."
+    next:
+      - label: "Continue — Jettison Solenoid Check"
+        node: tc_jettison_solenoid_check
+
+  tc_3_step_relay_control_check:
+    type: question
+    field_prompt: "After removing ONE relay control wire, are control voltage and ground still present at the remaining terminals?"
+    workshop_prompt: "Remove one relay control wire. Verify control voltage and ground at remaining terminals. Both present?"
+    answers:
+      yes: tc_3_result_fault_upstream
+      no: tc_3_result_missing_signal
+
+  tc_3_result_fault_upstream:
+    type: result
+    field_prompt: "Relay control signals present. Fault is upstream (logic/controller/switch inputs). Proceed to Cyclic Controller Input Checks."
+    workshop_prompt: "Control voltage and ground both present. Fault likely upstream (logic/controller/switch inputs). Proceed to Cyclic Controller checks."
+    outcome: "Relay control signals present: fault likely upstream; proceed to Cyclic Controller Input Checks."
+    next:
+      - label: "Continue — Cyclic Controller Input Checks"
+        node: tc_jettison_switch_check
+      - label: "Finish — Workshop follow-up"
+        node: terminal_workshop_inspection_required
+
+  tc_3_result_missing_signal:
+    type: result
+    field_prompt: "Relay control signal missing. Wiring or logic fault suspected. Proceed to Wiring Continuity Checks."
+    workshop_prompt: "Missing control signal or ground at relay. Proceed to wiring continuity checks / logic tracing."
+    outcome: "Relay control missing: proceed to wiring continuity checks."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop follow-up"
+        node: terminal_workshop_inspection_required
+
+  # ------------------------------------------------------------
+  # 3.7 — Cyclic Controller Input Checks (Door + Jettison switch)
+  # Uses canonical ID: tc_jettison_switch_check
+  # ------------------------------------------------------------
+  tc_jettison_switch_check:
+    type: question
+    field_prompt: "Are Door Switch and Jettison Switch inputs normal (no unintended command present)?"
+    workshop_prompt: "Verify Door Switch and Jettison Switch inputs at Cyclic Controller. No unintended command present?"
+    answers:
+      yes: tc_3_step_controller_output_check
+      no: tc_3_result_incorrect_input
+
+  tc_3_result_incorrect_input:
+    type: result
+    field_prompt: "Incorrect/unintended input detected. Investigate switch wiring or Cyclic Controller input logic."
+    workshop_prompt: "Incorrect/unintended input detected. Inspect switches, wiring, and controller input logic."
+    outcome: "Unintended input present: investigate Door/Jettison switch wiring and controller inputs."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  tc_3_step_controller_output_check:
+    type: question
+    field_prompt: "Is controller output to the Jettison Solenoid circuit normal (no unintended output)?"
+    workshop_prompt: "Verify controller output to Jettison Solenoid circuit. Output normal (no unintended output)?"
+    answers:
+      yes: tc_3_step_fault_resolved
+      no: tc_3_result_controller_output_fault
+
+  tc_3_result_controller_output_fault:
+    type: result
+    field_prompt: "Controller output fault suspected. Investigate controller output and wiring to solenoid circuit."
+    workshop_prompt: "Controller output fault suspected. Inspect controller output stage and wiring to solenoid circuit."
+    outcome: "Controller output fault: investigate controller output and wiring to solenoid circuit."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  # ------------------------------------------------------------
+  # Final gate — resolved vs persistent fault
+  # ------------------------------------------------------------
+  tc_3_step_fault_resolved:
+    type: question
+    field_prompt: "After completing these checks, has the fault resolved (pump no longer runs continuously)?"
+    workshop_prompt: "After completing checks/repairs, has the fault resolved (pump no longer runs continuously)?"
+    answers:
+      yes: tc_3_result_resolved
+      no: tc_3_result_persists
+
+  tc_3_result_resolved:
+    type: result
+    field_prompt: "Fault resolved. Return system to service and monitor."
+    workshop_prompt: "Fault resolved. Return system to service and monitor."
+    outcome: "Fault resolved: return system to service and monitor."
+    next:
+      - label: "Finish"
+        node: terminal_monitor_condition
+
+  tc_3_result_persists:
+    type: result
+    field_prompt: "Fault persists. Investigate hydraulic block or internal leakage paths."
+    workshop_prompt: "Fault persists after electrical/logic checks. Investigate hydraulic block/internal leakage."
+    outcome: "Fault persists: investigate hydraulic block/internal leakage paths."
+    next:
+      - label: "Finish — Mechanical investigation required"
+        node: terminal_mechanical_investigation_required
+

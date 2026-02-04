@@ -1,0 +1,141 @@
+id: tc_2_hydraulic_pump_wont_turn_on
+title: "Through Check — Hydraulic Pump Won’t Turn On"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_2_hydraulic_pump_wont_turn_on.md"
+
+entry: tc_hydraulic_pump_wont_turn_on
+
+nodes:
+
+  tc_hydraulic_pump_wont_turn_on:
+    type: question
+    field_prompt: "Will the system power up but the Hydraulic Pump will not run (fault present)?"
+    workshop_prompt: "Confirm fault: system will not power up or Hydraulic Pump will not run. Fault present?"
+    answers:
+      yes: tc2_2_2_initial_power_leds_on
+      no: tc2_result_fault_not_present
+
+
+  tc2_result_fault_not_present:
+    type: result
+    field_prompt: "Fault not present. Monitor and re-test if symptom returns."
+    workshop_prompt: "Fault not present at time of test. Monitor and re-test if symptom returns."
+    outcome: "Fault not present at time of test."
+    next:
+      - label: "Finish"
+        node: terminal_fault_not_present
+
+
+  # ------------------------------------------------------------
+  # 2.2 Initial Power Confirmation (Quick Check)
+  # ------------------------------------------------------------
+  tc2_2_2_initial_power_leds_on:
+    type: question
+    field_prompt: "Are any LEDs illuminated on the Isolair Display Box (power present)?"
+    workshop_prompt: "With ON/OFF ON, breakers IN, jettison switch NORMAL: are any Display Box LEDs illuminated (power present)?"
+    answers:
+      yes: tc2_2_4_1_cyclic_controller_check
+      no: tc2_2_3_1_circuit_breakers_tripped
+
+
+  # ------------------------------------------------------------
+  # 2.3 Power Supply Check
+  # 2.3.1 Circuit Breakers
+  # ------------------------------------------------------------
+  tc2_2_3_1_circuit_breakers_tripped:
+    type: question
+    field_prompt: "Have any aircraft circuit breakers supplying the Isolair system tripped?"
+    workshop_prompt: "Check all aircraft circuit breakers supplying the Isolair system. Any tripped?"
+    answers:
+      yes: tc2_result_reset_cb_and_retest
+      no: tc2_2_3_2_tank_power_input_check
+
+
+  tc2_result_reset_cb_and_retest:
+    type: result
+    field_prompt: "Reset the circuit breaker and re-test system operation."
+    workshop_prompt: "Reset the circuit breaker and re-test system operation."
+    outcome: "Circuit breaker tripped: reset and re-test."
+    next:
+      - label: "Re-test — Initial Power Confirmation"
+        node: tc2_2_2_initial_power_leds_on
+      - label: "Finish"
+        node: terminal_monitor_condition
+
+
+  # 2.3.2 Tank Power Input Check
+  tc2_2_3_2_tank_power_input_check:
+    type: question
+    field_prompt: "Is 24–28 VDC present at the large power input terminal of the Hydraulic Pump Power Relay (system ON)?"
+    workshop_prompt: "Measure voltage at the large power input terminal of the Hydraulic Pump Power Relay (system ON). 24–28 VDC present?"
+    answers:
+      yes: tc2_2_4_1_cyclic_controller_check
+      no: tc2_result_no_tank_power_replace_display_box
+
+
+  tc2_result_no_tank_power_replace_display_box:
+    type: result
+    field_prompt: "No tank power detected. Suspect aircraft power supply or Isolair Display Box. Replace Display Box and re-test. If still inoperative, investigate aircraft Main Power Relay Assembly."
+    workshop_prompt: "No tank power detected. Suspect aircraft power supply or Isolair Display Box. Replace Display Box and re-test. If still inoperative, investigate aircraft Main Power Relay Assembly."
+    outcome: "No power at Hydraulic Pump Power Relay input: replace Display Box, then investigate aircraft power supply/Main Power Relay Assembly if required."
+    next:
+      - label: "Finish — Replace Display Box and re-test"
+        node: terminal_replace_display_box
+      - label: "Finish — Aircraft power investigation required"
+        node: terminal_workshop_inspection_required
+
+
+  # ------------------------------------------------------------
+  # 2.4 Control System Check
+  # 2.4.1 Cyclic Controller Check
+  # ------------------------------------------------------------
+  tc2_2_4_1_cyclic_controller_check:
+    type: question
+    field_prompt: "If available: does the system operate with a known serviceable spare Cyclic Controller installed?"
+    workshop_prompt: "Install known serviceable spare Cyclic Controller (jettison switch NORMAL) and attempt operation. Does the system operate?"
+    answers:
+      yes: tc2_result_faulty_cyclic_controller
+      no: tc2_2_4_2_pressure_switch_power_check
+
+
+  tc2_result_faulty_cyclic_controller:
+    type: result
+    field_prompt: "Original Cyclic Controller is likely faulty. Replace controller to remain serviceable."
+    workshop_prompt: "Original Cyclic Controller faulty. Replace/repair as required."
+    outcome: "Cyclic Controller fault suspected: replace controller."
+    next:
+      - label: "Finish — Replace Cyclic Controller"
+        node: terminal_replace_cyclic_controller
+
+
+  # 2.4.2 Pressure Switch Power Check
+  tc2_2_4_2_pressure_switch_power_check:
+    type: question
+    field_prompt: "Is 24–28 VDC present at the Pressure Switch common supply when the system is ON?"
+    workshop_prompt: "Measure voltage at Pressure Switch common supply (system ON). 24–28 VDC present?"
+    answers:
+      yes: tc2_2_4_3_go_hydraulic_pump_power_relay_check
+      no: tc2_result_go_wiring_continuity_checks
+
+
+  tc2_result_go_wiring_continuity_checks:
+    type: result
+    field_prompt: "No power at Pressure Switch common supply. Investigate wiring between Display Box and Pressure Switch."
+    workshop_prompt: "No power at Pressure Switch common supply. Investigate wiring between Display Box and Pressure Switch using wiring diagram."
+    outcome: "Wiring fault suspected between Display Box and Pressure Switch: proceed to Wiring Continuity Checks."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+
+
+  # 2.4.3 Hydraulic Pump Power Relay Check (component)
+  tc2_2_4_3_go_hydraulic_pump_power_relay_check:
+    type: result
+    field_prompt: "Proceed to Hydraulic Pump Power Relay Check."
+    workshop_prompt: "Proceed to Hydraulic Pump Power Relay Check (single-path procedure)."
+    outcome: "Proceed to Hydraulic Pump Power Relay Check."
+    next:
+      - label: "Continue — Hydraulic Pump Power Relay Check"
+        node: tc_hydraulic_pump_power_relay_check
+

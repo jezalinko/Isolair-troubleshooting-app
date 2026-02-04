@@ -1,0 +1,60 @@
+id: tc_hydraulic_pump_output_pressure_adjustment
+title: "Through Check Component — Hydraulic Pump Output Pressure Adjustment"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_3_hydraulic_pump_continues_to_run.md"
+
+entry: tc_hp_out_step_1_in_range
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Check max output pressure (orange test button)
+  # ------------------------------------------------------------
+  tc_hp_out_step_1_in_range:
+    type: question
+    field_prompt: "Using the orange test button, is max pump output pressure within 1400–1500 psi?"
+    workshop_prompt: "System ON. Press orange test button on junction box. Is output pressure 1400–1500 psi?"
+    answers:
+      yes: tc_hp_out_result_ok
+      no: tc_hp_out_step_2_below_range
+
+  tc_hp_out_step_2_below_range:
+    type: question
+    field_prompt: "Is output pressure below 1400 psi?"
+    workshop_prompt: "Is output pressure below 1400 psi (too low)?"
+    answers:
+      yes: tc_hp_out_result_adjust_up
+      no: tc_hp_out_result_adjust_down
+
+  # ------------------------------------------------------------
+  # Results
+  # ------------------------------------------------------------
+  tc_hp_out_result_ok:
+    type: result
+    field_prompt: "Output pressure is correct."
+    workshop_prompt: "Output pressure verified."
+    outcome: "Pump output pressure verified: 1400–1500 psi."
+    next:
+      - label: "Continue — Hydraulic Pump Power Relay Check"
+        node: tc_hydraulic_pump_power_relay_check
+      - label: "Finish — Output pressure verified"
+        node: terminal_adjust_pump_output_pressure
+
+  tc_hp_out_result_adjust_up:
+    type: result
+    field_prompt: "Increase output pressure to 1400–1500 psi and re-check."
+    workshop_prompt: "Adjust clockwise to increase. Set 1400–1500 psi, refit cap, re-check."
+    outcome: "Adjust pump output pressure UP to 1400–1500 psi, then re-check."
+    next:
+      - label: "Re-check output pressure"
+        node: tc_hp_out_step_1_in_range
+
+  tc_hp_out_result_adjust_down:
+    type: result
+    field_prompt: "Decrease output pressure to 1400–1500 psi and re-check."
+    workshop_prompt: "Adjust anti-clockwise to decrease. Set 1400–1500 psi, refit cap, re-check."
+    outcome: "Adjust pump output pressure DOWN to 1400–1500 psi, then re-check."
+    next:
+      - label: "Re-check output pressure"
+        node: tc_hp_out_step_1_in_range
+

@@ -1,0 +1,72 @@
+id: tc_jettison_solenoid_check
+title: "Through Check Component — Jettison Solenoid Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_3_hydraulic_pump_continues_to_run.md"
+
+entry: tc_jettison_solenoid_check
+
+nodes:
+  tc_jettison_solenoid_check:
+    type: question
+    field_prompt: "Proceed with Jettison Solenoid Check?"
+    workshop_prompt: "Proceed with Jettison Solenoid Check?"
+    answers:
+      yes: tc_js_step_1_power_present
+      no: terminal_monitor_condition
+
+
+  # ------------------------------------------------------------
+  # Step 1 — Power & Ground
+  # ------------------------------------------------------------
+  tc_js_step_1_power_present:
+    type: question
+    field_prompt: "With system ON, is 24–28V and solid ground present at the solenoid coil?"
+    workshop_prompt: "Check for 24–28 VDC and solid ground at solenoid coil. Power & ground present?"
+    answers:
+      yes: tc_js_step_2_actuates
+      no: tc_js_result_power_missing
+
+  # ------------------------------------------------------------
+  # Step 2 — Operation
+  # ------------------------------------------------------------
+  tc_js_step_2_actuates:
+    type: question
+    field_prompt: "When commanded, does the solenoid actuate (listen/feel)?"
+    workshop_prompt: "Command jettison and confirm actuation (listen/feel). Does it operate?"
+    answers:
+      yes: tc_js_result_operates
+      no: tc_js_result_no_operation
+
+  # ------------------------------------------------------------
+  # Results
+  # ------------------------------------------------------------
+  tc_js_result_power_missing:
+    type: result
+    field_prompt: "Power missing at solenoid — control wiring fault suspected."
+    workshop_prompt: "Trace control wiring and grounds using diagram reference."
+    outcome: "Power missing at solenoid coil: proceed to wiring continuity checks."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+
+  tc_js_result_operates:
+    type: result
+    field_prompt: "Solenoid operates correctly."
+    workshop_prompt: "Solenoid operation confirmed."
+    outcome: "Jettison solenoid operates correctly. Continue troubleshooting at caller."
+    next:
+      - label: "Continue — Cyclic Controller / Switch Checks"
+        node: tc_jettison_switch_check
+      - label: "Finish — Solenoid check passed"
+        node: terminal_monitor_condition
+
+  tc_js_result_no_operation:
+    type: result
+    field_prompt: "Solenoid does not actuate. Replace solenoid coil and re-test."
+    workshop_prompt: "Replace solenoid coil (field-replaceable) and re-test."
+    outcome: "Solenoid does not actuate: replace solenoid coil and re-test (workshop follow-up if required)."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+

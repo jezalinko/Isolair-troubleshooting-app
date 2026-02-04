@@ -1,0 +1,64 @@
+id: tc_cyclic_controller_jettison_switch_check
+title: "Through Check Component — Cyclic Controller Jettison Switch Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_4_uncommanded_door_opening.md"
+
+entry: tc_cc_jett_step_1_unintended_command
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Unintended Jettison Command
+  # ------------------------------------------------------------
+  tc_cc_jett_step_1_unintended_command:
+    type: question
+    field_prompt: "Is there any unintended JETTISON command input present at the Cyclic Controller?"
+    workshop_prompt: "Verify Jettison Switch input at Cyclic Controller. Any unintended JETTISON command present?"
+    answers:
+      yes: tc_cc_jett_result_unintended_input
+      no: tc_cc_jett_step_2_input_changes_with_switch
+
+  # ------------------------------------------------------------
+  # Step 2 — Input changes with switch operation
+  # ------------------------------------------------------------
+  tc_cc_jett_step_2_input_changes_with_switch:
+    type: question
+    field_prompt: "When the Jettison Switch is operated, does the Jettison input change correctly at the controller?"
+    workshop_prompt: "Operate Jettison Switch and verify controller input transitions correctly. Input changes correctly?"
+    answers:
+      yes: tc_cc_jett_result_inputs_ok
+      no: tc_cc_jett_result_input_fault
+
+  # ------------------------------------------------------------
+  # Results
+  # ------------------------------------------------------------
+  tc_cc_jett_result_unintended_input:
+    type: result
+    field_prompt: "Unintended jettison input detected. Investigate Jettison Switch wiring / connector pins."
+    workshop_prompt: "Unintended jettison input present. Inspect Jettison Switch wiring, connector pins, and controller input circuit."
+    outcome: "Unintended Jettison Switch input present: investigate switch wiring/connectors/controller input."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  tc_cc_jett_result_inputs_ok:
+    type: result
+    field_prompt: "Jettison input appears normal. Proceed to Jettison Solenoid Check."
+    workshop_prompt: "Jettison input normal. Proceed to Jettison Solenoid Check."
+    outcome: "Jettison Switch input normal: proceed to Jettison Solenoid Check."
+    next:
+      - label: "Continue — Jettison Solenoid Check"
+        node: tc_jettison_solenoid_check
+
+  tc_cc_jett_result_input_fault:
+    type: result
+    field_prompt: "Jettison input does not change correctly. Switch or wiring fault suspected."
+    workshop_prompt: "Jettison input does not transition correctly. Switch or wiring fault suspected. Inspect wiring/contacts."
+    outcome: "Jettison Switch input fault: inspect switch/wiring/connectors."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required

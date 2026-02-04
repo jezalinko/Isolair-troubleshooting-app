@@ -1,0 +1,95 @@
+id: tc_pressure_switch_check
+title: "Through Check Component — Pressure Switch Check"
+type: flow
+version: 2
+source_md: "docs/through_checks/tc_1_snorkel_pump_wont_operate.md"
+
+entry: tc_ps_check_step_0_pump_continues_to_run
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 0 — Symptom selector (yes/no gate to support TC-1 + TC-3)
+  # ------------------------------------------------------------
+  tc_ps_check_step_0_pump_continues_to_run:
+    type: question
+    field_prompt: "Is the HYDRAULIC PUMP continuing to run (won’t cut out)?"
+    workshop_prompt: "Confirm symptom: Hydraulic Pump continues to run (no cut-out). Is this the symptom?"
+    answers:
+      yes: tc_ps_check_step_1_pressure_high
+      no: tc_ps_check_step_snorkel_output_voltage
+
+  # ------------------------------------------------------------
+  # TC-3 path — Pressure range split (HIGH / MED / LOW using yes/no chain)
+  # ------------------------------------------------------------
+  tc_ps_check_step_1_pressure_high:
+    type: question
+    field_prompt: "Is hydraulic pressure HIGH (>1200 psi)?"
+    workshop_prompt: "Observe gauge with system ON. Is pressure HIGH (>1200 psi)?"
+    answers:
+      yes: tc_ps_check_result_high_pressure_path
+      no: tc_ps_check_step_2_pressure_medium
+
+  tc_ps_check_step_2_pressure_medium:
+    type: question
+    field_prompt: "Is hydraulic pressure MEDIUM (850–1200 psi)?"
+    workshop_prompt: "Observe gauge. Is pressure MEDIUM (850–1200 psi)?"
+    answers:
+      yes: tc_ps_check_result_medium_pressure_path
+      no: tc_ps_check_result_low_pressure_path
+
+  tc_ps_check_result_high_pressure_path:
+    type: result
+    field_prompt: "High pressure suggests Pressure Switch adjustment is required."
+    workshop_prompt: "Proceed to Pressure Switch Adjustment (set correct cut-in)."
+    outcome: "HIGH pressure (>1200 psi): proceed to Pressure Switch Adjustment."
+    next:
+      - label: "Continue — Pressure Switch Adjustment"
+        node: tc_pressure_switch_adjustment
+
+  tc_ps_check_result_medium_pressure_path:
+    type: result
+    field_prompt: "Medium pressure suggests pump output pressure may be set low."
+    workshop_prompt: "Proceed to Pump Output Pressure Adjustment (verify 1400–1500 psi)."
+    outcome: "MEDIUM pressure (850–1200 psi): proceed to Hydraulic Pump Output Pressure Adjustment."
+    next:
+      - label: "Continue — Pump Output Pressure Adjustment"
+        node: tc_hydraulic_pump_output_pressure_adjustment
+
+  tc_ps_check_result_low_pressure_path:
+    type: result
+    field_prompt: "Low pressure suggests a jettison/valve issue."
+    workshop_prompt: "Proceed to Jettison Solenoid Check (power/ground and operation)."
+    outcome: "LOW pressure: proceed to Jettison Solenoid Check."
+    next:
+      - label: "Continue — Jettison Solenoid Check"
+        node: tc_jettison_solenoid_check
+
+  # ------------------------------------------------------------
+  # TC-1 path — Pressure Switch Output (Snorkel won’t operate)
+  # ------------------------------------------------------------
+  tc_ps_check_step_snorkel_output_voltage:
+    type: question
+    field_prompt: "With system ON and pressure 850–1150 psi, is there 24–28V at Pressure Switch High Pressure (N/O) output?"
+    workshop_prompt: "Measure at Pressure Switch High Pressure (N/O) terminal (Stauff Terminal 4). With system ON and 850–1150 psi: 24–28V present?"
+    answers:
+      yes: tc_ps_check_result_snorkel_switch_ok
+      no: tc_ps_check_result_snorkel_switch_fault
+
+  tc_ps_check_result_snorkel_switch_ok:
+    type: result
+    field_prompt: "Pressure Switch output is correct. Proceed to Snorkel Pump Power Relay Check."
+    workshop_prompt: "Pressure Switch OK. Proceed to Snorkel Pump Power Relay Check."
+    outcome: "Pressure Switch output OK: proceed to Snorkel Pump Power Relay Check."
+    next:
+      - label: "Continue — Snorkel Pump Power Relay Check"
+        node: tc_snorkel_pump_power_relay_check
+
+  tc_ps_check_result_snorkel_switch_fault:
+    type: result
+    field_prompt: "Pressure Switch output missing. Replace Pressure Switch and re-test."
+    workshop_prompt: "Replace Pressure Switch. Seal against water ingress using DC4 silicone grease. Re-test."
+    outcome: "Pressure Switch faulty/not closing: replace Pressure Switch and re-test."
+    next:
+      - label: "Finish — Replace Pressure Switch"
+        node: terminal_replace_pressure_switch
+

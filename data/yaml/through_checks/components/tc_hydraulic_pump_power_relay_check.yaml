@@ -1,0 +1,98 @@
+id: tc_hydraulic_pump_power_relay_check
+title: "Through Check Component — Hydraulic Pump Power Relay Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_2_hydraulic_pump_wont_turn_on.md"
+
+entry: tc_hydraulic_pump_power_relay_check
+
+nodes:
+
+  tc_hydraulic_pump_power_relay_check:
+    type: question
+    field_prompt: "Workshop check: confirm relay input power and control signal. Are you in a workshop environment now?"
+    workshop_prompt: "Proceed with Hydraulic Pump Power Relay checks. Are you in a workshop environment now?"
+    answers:
+      yes: tc_hppr_1_input_power_present
+      no: tc_hppr_result_workshop_required
+
+
+  tc_hppr_result_workshop_required:
+    type: result
+    field_prompt: "Hydraulic Pump Power Relay checks are workshop only. Escalate to base maintenance."
+    workshop_prompt: "Hydraulic Pump Power Relay checks are workshop only. Proceed under workshop procedures."
+    outcome: "Workshop required for Hydraulic Pump Power Relay checks."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+
+  # Step 1 — Input power
+  tc_hppr_1_input_power_present:
+    type: question
+    field_prompt: "Is 24–28 VDC present at the relay main input terminal (system ON)?"
+    workshop_prompt: "Measure relay main input terminal (system ON). 24–28 VDC present?"
+    answers:
+      yes: tc_hppr_2_control_signal_present
+      no: tc_hppr_result_no_input_power
+
+
+  tc_hppr_result_no_input_power:
+    type: result
+    field_prompt: "No input power at relay. Return to upstream power supply checks."
+    workshop_prompt: "No input power at relay. Return to upstream power supply checks (CBs, Display Box supply, aircraft power)."
+    outcome: "No input power at Hydraulic Pump Power Relay."
+    next:
+      - label: "Finish — Upstream power supply fault"
+        node: terminal_workshop_inspection_required
+
+
+  # Step 2 — Control (coil) command signal
+  tc_hppr_2_control_signal_present:
+    type: question
+    field_prompt: "When the pump is commanded ON, is a control signal present at the relay coil/control terminals?"
+    workshop_prompt: "Command pump ON. Is control/coil signal present at relay coil/control terminals?"
+    answers:
+      yes: tc_hppr_3_output_power_present
+      no: tc_hppr_result_no_control_signal_go_wiring
+
+
+  tc_hppr_result_no_control_signal_go_wiring:
+    type: result
+    field_prompt: "No relay control signal. Investigate control wiring/logic."
+    workshop_prompt: "No relay control signal. Investigate control wiring/logic between controller/pressure switch path and relay."
+    outcome: "No relay control signal: proceed to Wiring Continuity Checks."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+
+
+  # Step 3 — Output to pump
+  tc_hppr_3_output_power_present:
+    type: question
+    field_prompt: "With pump commanded ON, is 24–28 VDC present at the relay output to the hydraulic pump?"
+    workshop_prompt: "Command pump ON. Measure relay output to pump. 24–28 VDC present?"
+    answers:
+      yes: tc_hppr_result_output_present_pump_not_running
+      no: tc_hppr_result_relay_fault_suspected
+
+
+  tc_hppr_result_relay_fault_suspected:
+    type: result
+    field_prompt: "Relay input and control present but no output. Relay likely faulty. Replace relay and re-test."
+    workshop_prompt: "Relay input and control present but no output. Relay likely faulty. Replace relay and re-test."
+    outcome: "Hydraulic Pump Power Relay fault suspected: replace relay."
+    next:
+      - label: "Finish — Replace relay and re-test"
+        node: terminal_replace_relay
+
+
+  tc_hppr_result_output_present_pump_not_running:
+    type: result
+    field_prompt: "Relay output present but pump not running. Suspect pump motor/pump assembly or wiring at pump."
+    workshop_prompt: "Relay output present but pump not running. Suspect pump motor/pump assembly or wiring at pump. Proceed with workshop inspection."
+    outcome: "Power reaching pump but pump not running: investigate pump motor/pump assembly and local wiring."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+

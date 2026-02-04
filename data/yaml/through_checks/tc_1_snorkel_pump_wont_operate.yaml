@@ -1,0 +1,66 @@
+id: tc_snorkel_pump_wont_operate
+title: "Through Check — Snorkel Pump Won’t Operate"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_1_snorkel_pump_wont_operate.md"
+
+entry: tc_snorkel_pump_wont_operate
+
+nodes:
+  # ------------------------------------------------------------
+  # Entry — Confirm fault
+  # ------------------------------------------------------------
+  tc_snorkel_pump_wont_operate:
+    type: question
+    field_prompt: "Is the Snorkel Pump not operating (fault present)?"
+    workshop_prompt: "Confirm fault: Snorkel Pump will not operate. Fault present?"
+    answers:
+      yes: tc_1_step_1_pressure_in_range
+      no: tc_1_result_fault_not_present
+
+  tc_1_result_fault_not_present:
+    type: result
+    field_prompt: "Fault not present. Monitor system and re-check if fault returns."
+    workshop_prompt: "Fault not present. Monitor and re-test if symptom returns."
+    outcome: "Fault not present at time of test."
+    next:
+      - label: "Finish"
+        node: terminal_fault_not_present
+
+  # ------------------------------------------------------------
+  # 1.1 — Quick Check
+  # ------------------------------------------------------------
+  tc_1_step_1_pressure_in_range:
+    type: question
+    field_prompt: "Is hydraulic pressure within normal range (850–1150 psi)?"
+    workshop_prompt: "Observe pressure gauge. Is pressure within 850–1150 psi?"
+    answers:
+      yes: tc_1_step_2_door_close_led
+      no: tc_1_result_go_pressure_switch_check
+
+  tc_1_step_2_door_close_led:
+    type: question
+    field_prompt: "Is the green DOOR CLOSE LED illuminated on the Isolair Display Box?"
+    workshop_prompt: "Confirm DOOR CLOSE LED status (indicates pressure in range + doors closed). LED illuminated?"
+    answers:
+      yes: tc_1_result_go_motor_check
+      no: tc_1_result_go_pressure_switch_check
+
+  tc_1_result_go_pressure_switch_check:
+    type: result
+    field_prompt: "Proceed to Pressure Switch Check."
+    workshop_prompt: "Proceed to Pressure Switch Check."
+    outcome: "Proceed to Pressure Switch Check."
+    next:
+      - label: "Continue — Pressure Switch Check"
+        node: tc_pressure_switch_check
+
+  tc_1_result_go_motor_check:
+    type: result
+    field_prompt: "Proceed to Snorkel Pump Motor Check."
+    workshop_prompt: "Proceed to Snorkel Pump Motor Check."
+    outcome: "Proceed to Snorkel Pump Motor Check."
+    next:
+      - label: "Continue — Snorkel Pump Motor Check"
+        node: tc_snorkel_pump_motor_check
+

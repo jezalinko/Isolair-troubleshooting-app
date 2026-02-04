@@ -1,0 +1,66 @@
+id: tc_cyclic_controller_door_switch_check
+title: "Through Check Component — Cyclic Controller Door Switch Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_4_uncommanded_door_opening.md"
+
+entry: tc_cc_door_step_1_unintended_command
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Unintended Door Command
+  # ------------------------------------------------------------
+  tc_cc_door_step_1_unintended_command:
+    type: question
+    field_prompt: "Is there any unintended DOOR OPEN command input present at the Cyclic Controller?"
+    workshop_prompt: "Verify Door Switch input at Cyclic Controller. Any unintended DOOR OPEN command present?"
+    answers:
+      yes: tc_cc_door_result_unintended_input
+      no: tc_cc_door_step_2_input_changes_with_switch
+
+  # ------------------------------------------------------------
+  # Step 2 — Input changes with switch operation
+  # ------------------------------------------------------------
+  tc_cc_door_step_2_input_changes_with_switch:
+    type: question
+    field_prompt: "When the Door Switch is operated, does the Door input change correctly at the controller?"
+    workshop_prompt: "Operate Door Switch and verify controller input transitions correctly. Input changes correctly?"
+    answers:
+      yes: tc_cc_door_result_inputs_ok
+      no: tc_cc_door_result_input_fault
+
+  # ------------------------------------------------------------
+  # Results
+  # ------------------------------------------------------------
+  tc_cc_door_result_unintended_input:
+    type: result
+    field_prompt: "Unintended door input detected. Investigate Door Switch wiring / connector pins."
+    workshop_prompt: "Unintended door input present. Inspect Door Switch wiring, connector pins, and controller input circuit."
+    outcome: "Unintended Door Switch input present: investigate switch wiring/connectors/controller input."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+  tc_cc_door_result_inputs_ok:
+    type: result
+    field_prompt: "Door input appears normal. Proceed to hydraulic cross-over / solenoid checks."
+    workshop_prompt: "Door input normal. Proceed to hydraulic cross-over / solenoid checks."
+    outcome: "Door Switch input normal: proceed to hydraulic/solenoid checks."
+    next:
+      - label: "Continue — Hydraulic Cross Over Check"
+        node: tc_hydraulic_cross_over_check
+      - label: "Continue — Jettison Solenoid Check"
+        node: tc_jettison_solenoid_check
+
+  tc_cc_door_result_input_fault:
+    type: result
+    field_prompt: "Door input does not change correctly. Door Switch or wiring fault suspected."
+    workshop_prompt: "Door input does not transition correctly. Door Switch or wiring fault suspected. Inspect wiring/contacts."
+    outcome: "Door Switch input fault: inspect Door Switch/wiring/connectors."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required

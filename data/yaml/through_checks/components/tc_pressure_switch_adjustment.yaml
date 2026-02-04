@@ -1,0 +1,59 @@
+id: tc_pressure_switch_adjustment
+title: "Through Check Component — Pressure Switch Adjustment"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_3_hydraulic_pump_continues_to_run.md"
+
+entry: tc_ps_adj_step_1_cut_in_correct
+
+nodes:
+  # ------------------------------------------------------------
+  # Step 1 — Set cut-in to 850 psi
+  # ------------------------------------------------------------
+  tc_ps_adj_step_1_cut_in_correct:
+    type: question
+    field_prompt: "After adjustment, does Pressure Switch cut-in occur at ~850 psi?"
+    workshop_prompt: "Perform controlled bleed and adjust until cut-in occurs at 850 psi. Is cut-in now correct?"
+    answers:
+      yes: tc_ps_adj_result_success
+      no: tc_ps_adj_step_2_adjustment_possible
+
+  tc_ps_adj_step_2_adjustment_possible:
+    type: question
+    field_prompt: "Can correct cut-in (850 psi) be achieved with the switch installed?"
+    workshop_prompt: "If cut-in cannot be set correctly, replacement is required. Is adjustment achievable?"
+    answers:
+      yes: tc_ps_adj_result_retry
+      no: tc_ps_adj_result_replace
+
+  # ------------------------------------------------------------
+  # Results
+  # ------------------------------------------------------------
+  tc_ps_adj_result_success:
+    type: result
+    field_prompt: "Pressure Switch adjustment complete."
+    workshop_prompt: "Pressure Switch behaviour correct."
+    outcome: "Pressure Switch adjusted: cut-in set to 850 psi."
+    next:
+      - label: "Continue — Hydraulic Pump Power Relay Check"
+        node: tc_hydraulic_pump_power_relay_check
+      - label: "Finish — Adjustment completed"
+        node: terminal_adjust_pressure_switch
+
+  tc_ps_adj_result_retry:
+    type: result
+    field_prompt: "Repeat adjustment until cut-in is 850 psi."
+    workshop_prompt: "Repeat adjustment and re-check cut-in."
+    outcome: "Repeat Pressure Switch adjustment and re-check cut-in at 850 psi."
+    next:
+      - label: "Re-check cut-in"
+        node: tc_ps_adj_step_1_cut_in_correct
+
+  tc_ps_adj_result_replace:
+    type: result
+    field_prompt: "Pressure Switch cannot be adjusted correctly. Replace and re-test."
+    workshop_prompt: "Replace Pressure Switch and re-test system."
+    outcome: "Replace Pressure Switch (adjustment not achievable)."
+    next:
+      - label: "Finish — Replace Pressure Switch"
+        node: terminal_replace_pressure_switch

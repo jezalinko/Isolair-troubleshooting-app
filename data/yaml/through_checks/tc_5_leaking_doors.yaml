@@ -1,0 +1,154 @@
+id: tc_5_leaking_doors
+title: "Through Check — Leaking Doors"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_5_leaking_doors.md"
+
+entry: tc_leaking_doors
+
+nodes:
+
+  # ------------------------------------------------------------
+  # Entry / Applicability gate (Workshop-only per doc)
+  # ------------------------------------------------------------
+  tc_leaking_doors:
+    type: question
+    field_prompt: "This is a workshop-level inspection. Are you in a workshop/base maintenance environment now?"
+    workshop_prompt: "Confirm: this is a workshop-level inspection (door rigging/adjustment by trained personnel only). Proceed?"
+    answers:
+      yes: tc5_preparation_aircraft_power_off
+      no: tc5_result_workshop_required
+
+
+  tc5_result_workshop_required:
+    type: result
+    field_prompt: "Leaking Doors troubleshooting is workshop-level. Escalate to base maintenance."
+    workshop_prompt: "Leaking Doors troubleshooting is workshop-level. Proceed under workshop procedures."
+    outcome: "Workshop-level inspection required for leaking doors."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+
+  # ------------------------------------------------------------
+  # Preparation (captured as confirmations; no unsafe procedural detail)
+  # ------------------------------------------------------------
+  tc5_preparation_aircraft_power_off:
+    type: question
+    field_prompt: "Confirm aircraft power is OFF before accessing tank doors. Is aircraft power OFF?"
+    workshop_prompt: "CAUTION: Ensure aircraft power is OFF before accessing tank doors. Confirm aircraft power OFF?"
+    answers:
+      yes: tc5_preparation_access_doors_safely
+      no: tc5_result_power_off_required
+
+
+  tc5_result_power_off_required:
+    type: result
+    field_prompt: "Do not proceed until aircraft power is OFF."
+    workshop_prompt: "Do not proceed until aircraft power is OFF."
+    outcome: "Aircraft power must be OFF before accessing tank doors."
+    next:
+      - label: "Finish — Safety requirement"
+        node: terminal_workshop_inspection_required
+
+
+  tc5_preparation_access_doors_safely:
+    type: question
+    field_prompt: "Tank doors are spring-loaded. Can doors be accessed safely for inspection now?"
+    workshop_prompt: "CAUTION: Doors have return springs and resist opening. Confirm safe access for inspection."
+    answers:
+      yes: tc5_5_4_seal_damage_or_missing
+      no: tc5_result_mechanical_access_issue
+
+
+  tc5_result_mechanical_access_issue:
+    type: result
+    field_prompt: "If doors cannot be accessed safely, escalate to trained personnel."
+    workshop_prompt: "If doors cannot be accessed safely, escalate to trained personnel."
+    outcome: "Safe access issue: trained personnel required."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+
+  # ------------------------------------------------------------
+  # 5.4 Door Seal Inspection
+  # ------------------------------------------------------------
+  tc5_5_4_seal_damage_or_missing:
+    type: question
+    field_prompt: "Are the door seals damaged, missing, displaced, hardened, or contaminated with embedded foreign material?"
+    workshop_prompt: "Inspect door seals. Any missing sections, torn-away material, displacement, hardening, or embedded foreign material?"
+    answers:
+      yes: tc5_result_seals_unserviceable_tank_removal_required
+      no: tc5_5_5_cable_tension_contributing
+
+
+  tc5_result_seals_unserviceable_tank_removal_required:
+    type: result
+    field_prompt: "Seals unserviceable. Seal replacement required. Tank removal from aircraft is required. Re-test after replacement."
+    workshop_prompt: "Seals unserviceable. Replace affected seal section (or entire seal). Tank removal from aircraft required. Re-test door sealing after replacement."
+    outcome: "Door seals unserviceable: seal replacement required (tank removal required)."
+    next:
+      - label: "Finish — Tank removal / seal replacement required"
+        node: terminal_workshop_inspection_required
+      - label: "After replacement — Re-test leakage"
+        node: tc5_5_6_leakage_resolved
+
+
+  # ------------------------------------------------------------
+  # 5.5 Door Cable Assessment
+  # ------------------------------------------------------------
+  tc5_5_5_cable_tension_contributing:
+    type: question
+    field_prompt: "Does leakage pattern suggest incorrect/uneven door cable tension (e.g. uneven leakage along door)?"
+    workshop_prompt: "Assess door cable tension. Does leakage pattern suggest incorrect/uneven tension (uneven leakage)?"
+    answers:
+      yes: tc5_result_cable_adjustment_trained_personnel_only
+      no: tc5_5_6_leakage_resolved
+
+
+  tc5_result_cable_adjustment_trained_personnel_only:
+    type: result
+    field_prompt: "Cable adjustment may be required. Do not adjust without proper training. Engage trained rigging personnel."
+    workshop_prompt: "If adjustment required: only trained personnel to adjust door cables. Incorrect adjustment can worsen sealing or cause faults."
+    outcome: "Door cable tension suspected: adjustment by trained personnel only."
+    next:
+      - label: "Finish — Trained rigging personnel required"
+        node: terminal_workshop_inspection_required
+      - label: "After adjustment — Re-test leakage"
+        node: tc5_5_6_leakage_resolved
+
+
+  # ------------------------------------------------------------
+  # 5.6 Next Action — resolved vs persists
+  # ------------------------------------------------------------
+  tc5_5_6_leakage_resolved:
+    type: question
+    field_prompt: "After corrective action/inspection, is door leakage resolved?"
+    workshop_prompt: "Re-test door sealing. Is leakage resolved?"
+    answers:
+      yes: tc5_result_return_to_service
+      no: tc5_result_re_evaluate_seals_rigging_alignment
+
+
+  tc5_result_return_to_service:
+    type: result
+    field_prompt: "Leakage resolved. Return system to service."
+    workshop_prompt: "Leakage resolved. Return system to service."
+    outcome: "Leakage resolved: return to service."
+    next:
+      - label: "Finish — Return to service"
+        node: terminal_monitor_condition
+
+
+  tc5_result_re_evaluate_seals_rigging_alignment:
+    type: result
+    field_prompt: "Leakage persists. Re-evaluate door seals, cable rigging, and door alignment."
+    workshop_prompt: "Leakage persists. Re-evaluate door seals, cable rigging, and door alignment."
+    outcome: "Leakage persists: re-evaluate seals, cable rigging, and alignment."
+    next:
+      - label: "Re-check — Door Seal Inspection"
+        node: tc5_5_4_seal_damage_or_missing
+      - label: "Finish — Workshop investigation required"
+        node: terminal_workshop_inspection_required
+

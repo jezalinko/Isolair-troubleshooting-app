@@ -1,0 +1,82 @@
+id: tc_hydraulic_cross_over_check
+title: "Through Check Component — Hydraulic Cross-over Check"
+type: flow
+version: 1
+source_md: "docs/through_checks/tc_4_uncommanded_door_opening.md"
+
+entry: tc_hydraulic_cross_over_check
+
+nodes:
+
+  tc_hydraulic_cross_over_check:
+    type: question
+    field_prompt: "Is the cross-over valve suspected (doors open/hold open and controller swap did not resolve)?"
+    workshop_prompt: "Confirm symptom set points toward cross-over valve (doors remain open/pump continues, controller ruled out). Proceed with cross-over checks?"
+    answers:
+      yes: tc_hco_step_1_external_checks_ok
+      no: tc_hco_result_not_applicable
+
+
+  tc_hco_result_not_applicable:
+    type: result
+    field_prompt: "Cross-over check not applicable. Return to prior troubleshooting path."
+    workshop_prompt: "Cross-over check not applicable. Return to prior troubleshooting path."
+    outcome: "Cross-over check not applicable."
+    next:
+      - label: "Finish"
+        node: terminal_monitor_condition
+
+
+  # Keep field-side checks light: confirm obvious non-hydraulic causes ruled out
+  tc_hco_step_1_external_checks_ok:
+    type: question
+    field_prompt: "Have basic electrical causes been ruled out (controller swap + door/jettison switch checks as applicable)?"
+    workshop_prompt: "Confirm electrical causes ruled out (controller swap, switch input checks, wiring checks where applicable). Ruled out?"
+    answers:
+      yes: tc_hco_step_2_workshop_required
+      no: tc_hco_result_return_to_wiring
+
+
+  tc_hco_result_return_to_wiring:
+    type: result
+    field_prompt: "Rule out wiring/control first. Proceed to Wiring Continuity Checks."
+    workshop_prompt: "Electrical causes not yet ruled out. Proceed to Wiring Continuity Checks before hydraulic block work."
+    outcome: "Electrical causes not ruled out: proceed to Wiring Continuity Checks."
+    next:
+      - label: "Continue — Wiring Continuity Checks"
+        node: tc_wiring_continuity_checks
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+
+  # Workshop gate
+  tc_hco_step_2_workshop_required:
+    type: question
+    field_prompt: "Workshop-level inspection required for cross-over valve/hydraulic block. Are you in a workshop environment now?"
+    workshop_prompt: "Proceed with workshop-level inspection of cross-over valve/hydraulic block. In workshop environment?"
+    answers:
+      yes: tc_hco_result_workshop_proceed
+      no: tc_hco_result_workshop_required
+
+
+  tc_hco_result_workshop_required:
+    type: result
+    field_prompt: "Cross-over valve/hydraulic block inspection is workshop only. Escalate to base maintenance."
+    workshop_prompt: "Cross-over valve/hydraulic block inspection required. Proceed under workshop procedures."
+    outcome: "Hydraulic cross-over valve/hydraulic block inspection required (workshop only)."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+
+
+  tc_hco_result_workshop_proceed:
+    type: result
+    field_prompt: "Proceed under workshop procedures for cross-over valve assessment."
+    workshop_prompt: "Proceed with cross-over valve assessment per workshop procedures; inspect for sticking/leakage/contamination."
+    outcome: "Proceed with workshop-level cross-over valve/hydraulic block assessment."
+    next:
+      - label: "Finish — Workshop inspection required"
+        node: terminal_workshop_inspection_required
+      - label: "Finish — Mechanical investigation required"
+        node: terminal_mechanical_investigation_required
+
