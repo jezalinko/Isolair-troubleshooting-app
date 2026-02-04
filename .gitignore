@@ -4,6 +4,10 @@ docs/source_pdfs/
 
 # Python venv
 .venv/
+__pycache__/
+*.pyc
+.DS_Store
+
 
 # PDFs - never commit
 *.pdf

@@ -46,6 +46,14 @@ def normalize_answer_key(k: Any) -> str:
         return k.strip().lower()
     return str(k).strip().lower()
 
+def is_external_node_id(node_id: str) -> bool:
+    """
+    Allow cross-file references without forcing monolithic YAML.
+    FC YAMLs can legitimately point to TC/terminal nodes in other YAML files.
+    """
+    return node_id.startswith(("tc_", "fc_", "terminal_"))
+
+
 
 # ----------------------------
 # Schema helpers
@@ -209,7 +217,7 @@ def validate(spec: dict, policy_errors: bool = False) -> None:
                 if not isinstance(target, str) or not target.strip():
                     fail(f"Answer '{k}' in '{node_id}' must point to a node id string")
 
-                if target not in node_ids:
+                if target not in node_ids and not is_external_node_id(target):
                     fail(f"'{node_id}' → '{k}' points to unknown node '{target}'")
 
                 normalized[k] = target
@@ -237,7 +245,7 @@ def validate(spec: dict, policy_errors: bool = False) -> None:
                     dst = opt.get("node")
                     if not isinstance(dst, str) or not dst.strip():
                         fail(f"Result '{node_id}': next[{i}] missing valid 'node'")
-                    if dst not in node_ids:
+                    if dst not in node_ids and not is_external_node_id(dst):
                         fail(f"Result '{node_id}': next[{i}] points to unknown node '{dst}'")
 
         # Validate visual_refs type if present

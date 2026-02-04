@@ -1,0 +1,124 @@
+id: fc_2_system_wont_turn_on
+title: "First Check — System Won’t Turn On (Hydraulic Pump Won’t Run)"
+type: flow
+version: 1
+source_md: "docs/first_checks/FC-2_system_wont_turn_on.md"
+
+entry: fc_2_step_1_display_check
+
+nodes:
+
+  # -------------------------
+  # Step 1 — Display Check
+  # -------------------------
+  fc_2_step_1_display_check:
+    type: question
+    prompt: "Are any LEDs illuminated on the Isolair Display Box?"
+    answers:
+      yes: fc_2_step_2_jettison_switch_check
+      no: fc_2_step_3_circuit_breaker_check
+
+
+  # -------------------------
+  # Step 2 — Jettison Switch Check
+  # -------------------------
+  fc_2_step_2_jettison_switch_check:
+    type: question
+    prompt: >
+      Toggle the Jettison Switch several times and ensure it is in the normal operating position (UP).
+      Does the system now turn on?
+    answers:
+      yes: terminal_replace_cyclic_controller
+      no: fc_2_step_4_cyclic_controller_substitution
+
+
+  # -------------------------
+  # Step 3 — Circuit Breaker Check
+  # -------------------------
+  fc_2_step_3_circuit_breaker_check:
+    type: question
+    prompt: "Have any circuit breakers on the Isolair Display Box tripped?"
+    answers:
+      yes: fc_2_step_3a_reset_breakers_retest
+      no: fc_2_step_7_bus_power_check
+
+  fc_2_step_3a_reset_breakers_retest:
+    type: question
+    prompt: >
+      Reset circuit breakers and re-test system.
+      Did the system turn on after resetting the circuit breakers?
+    answers:
+      yes: terminal_fault_not_present
+      no: fc_2_step_5_aircraft_power_check
+
+
+  # -------------------------
+  # Step 4 — Cyclic Controller Substitution
+  # -------------------------
+  fc_2_step_4_cyclic_controller_substitution:
+    type: question
+    prompt: >
+      Change the Cyclic Controller.
+      Does the system now turn on?
+    answers:
+      yes: terminal_replace_cyclic_controller
+      no: fc_2_step_6_pressure_switch_check
+
+
+  # -------------------------
+  # Step 5 — Aircraft Power Check
+  # -------------------------
+  fc_2_step_5_aircraft_power_check:
+    type: question
+    prompt: "Are you operating on ground power with engines not running?"
+    answers:
+      yes: fc_2_step_7_bus_power_check
+      no: tc_circuit_breaker_checks
+
+
+  # -------------------------
+  # Step 6 — Pressure Switch Check
+  # -------------------------
+  fc_2_step_6_pressure_switch_check:
+    type: question
+    prompt: >
+      Change the Pressure Switch.
+      Does the system now turn on?
+    answers:
+      yes: terminal_replace_pressure_switch
+      no: tc_tank_power_supply_check
+
+
+  # -------------------------
+  # Step 7 — Bus Power Check
+  # -------------------------
+  fc_2_step_7_bus_power_check:
+    type: question
+    prompt: >
+      Ensure the NON-ESSENTIAL BUS is set to MANUAL (Bell 214 ground power requirement).
+      Does the system now turn on?
+    answers:
+      yes: terminal_fault_not_present
+      no: tc_circuit_breaker_checks
+
+
+  # -------------------------
+  # Terminal outcomes (local + canonical IDs)
+  # -------------------------
+  terminal_replace_cyclic_controller:
+    type: result
+    outcome: >
+      Likely faulty Cyclic Controller (Jettison / Door / internal switch).
+      Replace Cyclic Controller to remain serviceable. Tag faulty unit for workshop repair.
+
+  terminal_replace_pressure_switch:
+    type: result
+    outcome: >
+      Faulty Pressure Switch identified.
+      Replace Pressure Switch.
+
+  terminal_fault_not_present:
+    type: result
+    outcome: >
+      No fault present after corrective action. Re-test full tank operation.
+

@@ -1,0 +1,44 @@
+id: fc_5_leaking_doors
+title: "First Check — Leaking Doors"
+type: flow
+version: 1
+source_md: "docs/first_checks/FC-5_leaking_doors.md"
+
+entry: fc_5_step_1_leakage_present
+
+nodes:
+
+  # -------------------------------------------------
+  # Step 1 — Leakage Present?
+  # -------------------------------------------------
+  fc_5_step_1_leakage_present:
+    type: question
+    field_prompt: "Is leakage present with doors closed?"
+    workshop_prompt: "Is leakage present with doors closed?"
+    answers:
+      yes: fc_5_step_2_exceeds_allowable_rate
+      no: terminal_fault_not_present
+
+  # -------------------------------------------------
+  # Step 2 — Allowable Rate
+  # -------------------------------------------------
+  fc_5_step_2_exceeds_allowable_rate:
+    type: question
+    field_prompt: "Is leakage greater than 1 drop every 2–3 seconds per door?"
+    workshop_prompt: "Is leakage greater than 1 drop every 2–3 seconds per door?"
+    answers:
+      yes: fc_5_step_3_leakage_uneven_or_localised
+      no: terminal_monitor_condition
+
+  # -------------------------------------------------
+  # Step 3 — Leakage Pattern
+  # (Either way: workshop inspection required)
+  # -------------------------------------------------
+  fc_5_step_3_leakage_uneven_or_localised:
+    type: question
+    field_prompt: "Is leakage uneven or localised?"
+    workshop_prompt: "Is leakage uneven or localised?"
+    answers:
+      yes: terminal_workshop_inspection_required
+      no: terminal_workshop_inspection_required
+

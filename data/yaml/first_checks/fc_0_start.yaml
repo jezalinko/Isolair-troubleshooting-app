@@ -1,0 +1,27 @@
+id: fc_0_start
+title: "First Check — Start"
+type: flow
+version: 1
+source_md: "docs/first_checks/FC-0_first_checks_start_page.md"
+
+entry: fc_0_select_issue
+
+nodes:
+
+  fc_0_select_issue:
+    type: result
+    field_prompt: "Select the current issue with the Isolair Fire Tank."
+    workshop_prompt: "Select the current issue with the Isolair Fire Tank."
+    outcome: "Select the current issue with the Isolair Fire Tank:"
+    next:
+      - label: "Snorkel Pump Won’t Operate"
+        node: fc_1_snorkel_pump_wont_operate
+      - label: "System Won’t Turn On (Hydraulic Pump Won’t Run)"
+        node: fc_2_system_wont_turn_on
+      - label: "Hydraulic Pump Continues To Run"
+        node: fc_3_hydraulic_pump_continues_to_run
+      - label: "Uncommanded Door Opening"
+        node: fc_4_uncommanded_door_opening
+      - label: "Leaking Doors"
+        node: fc_5_leaking_doors
+

@@ -1,0 +1,98 @@
+id: fc_1_snorkel_pump_wont_operate
+title: "First Check — Snorkel Pump Won’t Operate"
+type: flow
+version: 1
+source_md: "docs/first_checks/FC-1_snorkel_pump_wont_operate.md"
+
+entry: fc_1_step_1_door_close_led
+
+nodes:
+
+  fc_1_step_1_door_close_led:
+    type: question
+    prompt: "Is the green DOOR CLOSE LED illuminated on the Isolair Display Box?"
+    answers:
+      yes: fc_1_step_2_pump_switch_either_direction
+      no: fc_1_step_3_change_pressure_switch
+
+  fc_1_step_2_pump_switch_either_direction:
+    type: question
+    prompt: >
+      Trigger the Pump Switch in both directions on the Cyclic Controller.
+      Does the Snorkel Pump operate in either direction (one direction only)?
+    answers:
+      yes: terminal_fc1_pump_switch_partially_functional
+      no: fc_1_step_4_relay_click
+
+  terminal_fc1_pump_switch_partially_functional:
+    type: result
+    title: "Pump Switch partially functional"
+    outcome: >
+      Pump Switch is faulty but partially functional.
+      Continue use if necessary, but replace ASAP.
+    recommended_action:
+      - "Replace Cyclic Controller ASAP"
+    links:
+      - label: "View detail: Cyclic Controller Pump Switch Check"
+        next: tc_cyclic_controller_pump_switch_check
+
+  fc_1_step_3_change_pressure_switch:
+    type: question
+    prompt: "Change the Pressure Switch. Does the Snorkel Pump now operate?"
+    answers:
+      yes: terminal_fc1_faulty_pressure_switch
+      no: tc_pressure_switch_check
+
+  terminal_fc1_faulty_pressure_switch:
+    type: result
+    title: "Faulty Pressure Switch identified"
+    outcome: "Faulty Pressure Switch identified."
+    recommended_action:
+      - "Replace Pressure Switch"
+
+  fc_1_step_4_relay_click:
+    type: question
+    prompt: >
+      When the Pump Switch is triggered,
+      can you hear the Snorkel Pump Power Relay energise?
+    note: "Confirms whether control signal is reaching the relay."
+    answers:
+      yes: fc_1_step_6_substitute_snorkel_pump
+      no: fc_1_step_5_change_cyclic_controller
+
+  fc_1_step_5_change_cyclic_controller:
+    type: question
+    prompt: "Change the Cyclic Controller. Does the Snorkel Pump now operate?"
+    answers:
+      yes: terminal_fc1_faulty_cyclic_controller
+      no: tc_snorkel_pump_power_relay_check
+
+  terminal_fc1_faulty_cyclic_controller:
+    type: result
+    title: "Faulty Cyclic Controller (Pump Switch circuit)"
+    outcome: >
+      Faulty Cyclic Controller identified.
+      Tag faulty unit for workshop repair.
+    recommended_action:
+      - "Replace Cyclic Controller"
+
+  fc_1_step_6_substitute_snorkel_pump:
+    type: question
+    prompt: >
+      Change the Snorkel Pump with a serviceable spare and re-test.
+      Does the replacement Snorkel Pump operate?
+    answers:
+      yes: terminal_fc1_faulty_snorkel_pump
+      no: tc_snorkel_pump_wont_operate
+
+  terminal_fc1_faulty_snorkel_pump:
+    type: result
+    title: "Faulty Snorkel Pump identified"
+    outcome: >
+      Faulty Snorkel Pump identified.
+      Continue to use replacement pump.
+    recommended_action:
+      - "Replace Snorkel Pump"
+    links:
+      - label: "Proceed to through checks: Snorkel Pump Motor Check"
+        next: tc_snorkel_pump_motor_check

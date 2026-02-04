@@ -1,0 +1,89 @@
+id: fc_3_hydraulic_pump_continues_to_run
+title: "First Check — Hydraulic Pump Continues To Run"
+type: flow
+version: 1
+source_md: "docs/first_checks/FC-3_hydraulic_pump_continues_to_run.md"
+
+entry: fc_3_step_1_pressure_high
+
+nodes:
+
+  # -------------------------------------------------
+  # Step 1 — Hydraulic Pressure High?
+  # -------------------------------------------------
+  fc_3_step_1_pressure_high:
+    type: question
+    prompt: "Is the observed hydraulic pressure HIGH (greater than 1150 psi)?"
+    answers:
+      yes: fc_3_step_2a_change_pressure_switch
+      no: fc_3_step_1b_pressure_medium
+
+  # -------------------------------------------------
+  # Step 1B — Hydraulic Pressure Medium?
+  # -------------------------------------------------
+  fc_3_step_1b_pressure_medium:
+    type: question
+    prompt: "Is the observed hydraulic pressure within the normal range (850–1150 psi)?"
+    answers:
+      yes: fc_3_step_2b_adjust_output_pressure
+      no: fc_3_step_1c_pressure_low
+
+  # -------------------------------------------------
+  # Step 1C — Hydraulic Pressure Low?
+  # -------------------------------------------------
+  fc_3_step_1c_pressure_low:
+    type: question
+    prompt: "Is the observed hydraulic pressure LOW (below 850 psi, often around 50 psi)?"
+    answers:
+      yes: fc_3_step_2c_change_cyclic_controller
+      no: terminal_fault_not_present
+
+  # -------------------------------------------------
+  # Step 2A — High Pressure Path
+  # -------------------------------------------------
+  fc_3_step_2a_change_pressure_switch:
+    type: question
+    prompt: "Change the Pressure Switch. Does the hydraulic pump now operate correctly?"
+    answers:
+      yes: terminal_adjust_pressure_switch
+      no: fc_3_step_2a_pressure_below_1300
+
+  fc_3_step_2a_pressure_below_1300:
+    type: question
+    prompt: "Is the hydraulic pressure below 1300 psi?"
+    answers:
+      yes: tc_hydraulic_pump_output_pressure_adjustment
+      no: tc_pressure_switch_check
+
+  # -------------------------------------------------
+  # Step 2B — Medium Pressure Path
+  # -------------------------------------------------
+  fc_3_step_2b_adjust_output_pressure:
+    type: question
+    prompt: "Adjust the hydraulic pump output pressure. Does the hydraulic pump now operate correctly?"
+    answers:
+      yes: terminal_adjust_pump_output_pressure
+      no: fc_3_step_2a_change_pressure_switch
+
+  # -------------------------------------------------
+  # Step 2C — Low Pressure Path
+  # -------------------------------------------------
+  fc_3_step_2c_change_cyclic_controller:
+    type: question
+    prompt: "Change the Cyclic Controller. Does the hydraulic pump now operate correctly?"
+    answers:
+      yes: terminal_replace_cyclic_controller
+      no: fc_3_step_3_jettison_solenoid_power
+
+  # -------------------------------------------------
+  # Step 3 — Jettison Solenoid Electrical Check
+  # -------------------------------------------------
+  fc_3_step_3_jettison_solenoid_power:
+    type: question
+    prompt: >
+      With system power ON, is there power and ground present at the
+      Jettison Solenoid terminals (with at least one wire removed)?
+    answers:
+      yes: tc_jettison_solenoid_check
+      no: tc_jettison_solenoid_check
+

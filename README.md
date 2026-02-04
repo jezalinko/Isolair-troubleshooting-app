@@ -1,112 +1,146 @@
-# Isolair Troubleshooting App (Project)
+# Isolair Troubleshooting App
 
-A mobile-friendly troubleshooting assistant derived from the **Isolair Fire Fighting Tank Troubleshooting Guide**.
+A **field troubleshooting companion and decision-support aide** derived from the  
+*Isolair Fire Fighting Tank Troubleshooting Guide*.
 
-This repo is intentionally split into:
-- **docs/**: extracted Markdown knowledge (human-readable)
-- **data/**: structured logic (YAML/JSON) used by the app
-- **scripts/**: helpers to extract/validate/convert content
-- **app/**: the future mobile/PWA application code
-- **infra/**: Docker + tooling to keep the dev environment consistent
+This project converts existing troubleshooting knowledge into **structured, validated decision logic** that can be used in the field to assist experienced tank technicians during fault isolation and follow-up.
 
 > ⚠️ **Safety / Advisory Disclaimer**
-> This project is intended as an **advisory troubleshooting aid only**.
-> It does **not** replace approved manuals, checklists, SOPs, or training.
-> Always follow your organization’s approved procedures and documentation.
+>
+> This project is an **advisory decision-support tool only**.
+> It does **not** replace approved manuals, maintenance data, SOPs, or formal training.
+> Always follow your organisation’s approved documentation and procedures.
+> The technician remains responsible for all maintenance decisions.
 
 ---
 
-## Status
+## Project Status
 
-**Phase 1 (in progress):** Repository skeleton + PDF → Markdown extraction  
-**Phase 2 (later):** YAML decision logic + validation  
-**Phase 3 (later):** Mobile-first app (React/PWA)  
-**Phase 4 (later):** Offline logging + Raspberry Pi kiosk testing
+### Phase 1 — Knowledge Extraction ✅ **Complete**
+- PDF troubleshooting guides extracted and cleaned into Markdown
+- Legacy material archived for traceability
+
+### Phase 2 — Decision Logic (YAML)
+- **First Checks (FC-0 → FC-5):** ✅ **Complete and validated**
+- **Through Checks (TC-1 → TC-5):** ⏳ **Next stage**
+
+> First Checks provide rapid in-field fault isolation.  
+> Through Checks will provide deeper, component-level troubleshooting paths.
+
+### Phase 3 — Application Layer ⏳ *Planned*
+- Mobile-friendly UI (PWA)
+- Offline/online operation
+- Technician-entered context (aircraft, tank asset / serial number)
+
+### Phase 4 — Reporting & History ⏳ *Planned*
+- Post-troubleshooting report submission
+- Asset-based fault history
+- Inspection follow-up support for annual maintenance
 
 ---
 
-## Repository Layout
+## Repository Structure
 
 ```text
 isolair-troubleshooting-app/
-├─ app/                  # (later) React/PWA app
+├─ app/                    # Early scaffolding for future mobile/PWA app
 ├─ data/
-│  ├─ schema/            # JSON Schema for validating structured data
-│  ├─ yaml/              # (later) authored decision trees
-│  └─ json/              # (later) compiled runtime data
+│  ├─ schema/              # JSON schema for validating troubleshooting logic
+│  └─ yaml/
+│     └─ first_checks/     # Authoritative FC-0 → FC-5 YAML decision trees
 ├─ docs/
-│  ├─ source_pdfs/       # original PDFs (source of truth)
-│  ├─ extracted_md/      # cleaned markdown extracted from PDFs
-│  └─ images/            # exported diagrams/images (later)
-├─ infra/
-│  ├─ docker/            # docker-compose/dev containers (later)
-│  └─ ci/                # github actions (later)
-└─ scripts/              # extraction + validation scripts (later)
+│  ├─ first_checks/        # Human-readable First Check documentation
+│  ├─ through_checks/      # Human-readable Through Check documentation
+│  └─ archive/             # Legacy / extracted reference material
+├─ scripts/
+│  ├─ validate_yaml.py     # YAML logic validator
+│  └─ run_check.py         # CLI troubleshooting runner (Field / Workshop modes)
+├─ dev_archive/            # One-off and legacy development scripts
+├─ infra/                  # Docker / tooling (future use)
+└─ README.md
+```
+
+## First Checks (Current Capability)
+
+The following **First Check (FC)** modules are complete and validated:
+
+- **FC-0** — Start / Fault Selection  
+- **FC-1** — Snorkel Pump Won’t Operate  
+- **FC-2** — System Won’t Turn On  
+- **FC-3** — Hydraulic Pump Continues To Run  
+- **FC-4** — Uncommanded Door Opening  
+- **FC-5** — Leaking Doors  
+
+Each First Check:
+
+- Uses canonical node IDs
+- Passes schema and logic validation
+- Cleanly hands off to relevant Through Checks where required
 
 ---
 
-## `.gitignore`
+## CLI Usage (Developer / Power User)
 
-This is a safe, practical ignore set for current structure + future Node/React + Python scripts:
+### Validate YAML Logic
 
-```gitignore
-# ===== OS / Editor =====
-.DS_Store
-Thumbs.db
-*.swp
-*~
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/launch.json
+Ensure a First Check or Through Check YAML file is structurally valid:
 
-# ===== Logs / temp =====
-*.log
-*.tmp
-tmp/
-temp/
-.cache/
-dist/
-build/
+```bash
+python3 scripts/validate_yaml.py data/yaml/first_checks/fc_3_hydraulic_pump_continues_to_run.yaml
+```
 
-# ===== Node / Web =====
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-*.tsbuildinfo
-.vite/
+### Run the Troubleshooting Flow (CLI)
 
-# ===== Env files =====
-.env
-.env.*
-!.env.example
+Launch an interactive troubleshooting session:
 
-# ===== Python =====
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.venv/
-venv/
-ENV/
-env/
-pip-wheel-metadata/
+```bash
+python3 scripts/run_check.py data/yaml/first_checks/fc_0_start.yaml
+```
+### Runtime Controls
 
-# ===== Coverage / test =====
-coverage/
-.nyc_output/
+- `y / n` → Answer **Yes / No**
+- `b` → Go back one step
+- `c` → Toggle **Field ⇄ Workshop** context
+- `q` → Quit
 
-# ===== PDFs / derived exports =====
-# Keep the source PDFs in git for versioned docs.
-# Ignore large derived outputs for future generation:
-docs/extracted_md/_exports/
-docs/images/_exports/
+Field vs Workshop context controls how much detail is displayed, reducing cognitive load during live operations.
 
-# ===== NOTES =====
-## At any question:
-type c → flips Field ⇄ Workshop and re-asks the same question using the other prompt + showing/hiding details based on mode
-type q → exits cleanly
-type b → goes back one step 
+---
+
+## Source Documentation
+
+This project is derived from company troubleshooting documentation.
+
+- PDF source material may be stored locally for reference
+- Commit status of source PDFs is intentionally **neutral**
+- Markdown documentation reflects extracted and cleaned knowledge only
+
+---
+
+## Contribution Notes
+
+This repository is currently:
+
+- Maintained as an internal engineering project
+- Structured for future collaboration
+- Not yet open for general external contributions
+
+> Contribution guidelines may be added once the Through Check logic and application layer are stabilised.
+
+---
+
+## Design Philosophy
+
+- **Field-first:** Fast fault isolation under operational pressure
+- **Advisory, not authoritative:** Supports judgement, does not replace it
+- **Traceable:** Every decision maps back to documented logic
+- **Expandable:** Designed to grow into reporting, history, and analytics
+
+---
+
+## Licence / Usage
+
+> Internal engineering and decision-support use only.  
+> Distribution or operational use is subject to organisational approval.
+
 
